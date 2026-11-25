@@ -1,8 +1,8 @@
 /* shiftbloom studio brand tokens, brandbook v2 (white mode only) */
 :root {
   --bloom: #FF2E52; --root: #C81040; --pink: #FF8FAB; --blush: #FFE9EF;
-  --ink: #1A1216; --ink-60: rgba(26,18,22,.6); --ink-40: rgba(26,18,22,.4); --ink-12: rgba(26,18,22,.12); --ink-06: rgba(26,18,22,.06);
-  --paper: #FFFFFF; --paper-warm: #FAF6F4;
+  --ink: #1A1216; --ink-60: rgba(26,18,22,.62); --ink-40: rgba(26,18,22,.4); --ink-12: rgba(26,18,22,.12); --ink-06: rgba(26,18,22,.06);
+  --paper: #f6f1ee; --paper-warm: #eee6e2;
   --display: "Clash Display", "General Sans", system-ui, sans-serif;
   --sans: "General Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;

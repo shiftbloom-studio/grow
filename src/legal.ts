@@ -150,7 +150,7 @@ export function legalPage(path: LegalPath, env: Env, base: string): string {
 <title>grow. · ${esc(p.title)}</title>
 <meta name="robots" content="noindex">
 <link rel="alternate" hreflang="${de ? "en" : "de"}" href="${p.other}">
-<meta name="theme-color" content="#FFFFFF">
+<meta name="theme-color" content="#F6F1EE">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/fonts.css">
 <link rel="stylesheet" href="/assets/brand.css">

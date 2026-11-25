@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>grow. · chat commands and OBS setup</title>
+<meta name="description" content="Every grow chat command with an example, how to add the overlay to OBS in three steps, and answers to common questions.">
+<link rel="canonical" href="https://grow.shiftbloom.studio/commands">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="grow. by shiftbloom studio">
+<meta property="og:title" content="grow. chat commands and OBS setup">
+<meta property="og:description" content="Every grow chat command with an example, the OBS setup in three steps, and a short FAQ.">
+<meta property="og:url" content="https://grow.shiftbloom.studio/commands">
+<meta property="og:image" content="https://grow.shiftbloom.studio/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A grow overlay called Today's tasks, three of six done, grouped by viewer.">
+<meta name="twitter:image" content="https://grow.shiftbloom.studio/og.png">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/general-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/fonts.css">
+<link rel="stylesheet" href="/assets/brand.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "Do I need a bot account?", "acceptedAnswer": { "@type": "Answer", "text": "No. grow reads your chat anonymously, and only while your overlay is open." } },
+    { "@type": "Question", "name": "Can viewers see or change my settings?", "acceptedAnswer": { "@type": "Answer", "text": "No. The overlay link can only read the list. Settings live in the dashboard, which needs your key." } },
+    { "@type": "Question", "name": "What happens if my overlay link leaks?", "acceptedAnswer": { "@type": "Answer", "text": "Make a new overlay link in the dashboard. The old one stops working right away." } },
+    { "@type": "Question", "name": "Does grow work with YouTube or Kick?", "acceptedAnswer": { "@type": "Answer", "text": "Not yet. grow reads Twitch chat. You can still add tasks yourself from the dashboard." } },
+    { "@type": "Question", "name": "Is it free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The hosted version is free, and the code is open source under AGPL-3.0-or-later." } }
+  ]
+}
+</script>
+<style>
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
+  nav { display: flex; align-items: center; gap: 24px; padding: 28px 0; }
+  nav .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+  nav .brand [data-bloom] { width: 30px; height: 30px; }
+  nav .wordmark { font-size: 28px; }
+  nav .sp { flex: 1; }
+  nav a.l { color: var(--ink); text-decoration: none; font-weight: 500; }
+  nav a.l:hover { color: var(--root); }
+  @media (max-width: 560px) { nav a.l { display: none; } }
+  h1 { font-size: clamp(40px, 6vw, 72px); margin: 24px 0 18px; }
+  .lead { font-size: 19px; color: var(--ink-60); max-width: 34em; margin: 0 0 56px; }
+  section { padding: 56px 0; border-top: 1.5px solid var(--ink); }
+  section h2 { font-size: clamp(28px, 3.4vw, 40px); margin: 8px 0 28px; }
+  .cmd { display: grid; grid-template-columns: 220px 1fr; gap: 8px 32px; padding: 18px 0; border-bottom: 1px solid var(--ink-12); }
+  @media (max-width: 680px) { .cmd { grid-template-columns: 1fr; } }
+  .cmd .name { font: 500 15px/1.5 var(--mono); }
+  .cmd .name small { display: block; font-weight: 400; color: var(--ink-60); font-size: 12.5px; }
+  .cmd p { margin: 0; }
+  .cmd .ex { margin-top: 8px; font: 400 13.5px/1.5 var(--mono); color: var(--ink-60); }
+  .cmd .ex b { color: var(--ink); font-weight: 500; }
+  ol.obs { padding-left: 1.2em; display: grid; gap: 14px; font-size: 17px; max-width: 40em; }
+  ol.obs li::marker { font: 500 14px var(--mono); color: var(--root); }
+  code { font-family: var(--mono); font-size: .9em; background: var(--blush); padding: 2px 6px; border-radius: 6px; }
+  dl { margin: 0; display: grid; gap: 26px; max-width: 42em; }
+  dt { font: 600 18px/1.4 var(--sans); }
+  dd { margin: 6px 0 0; color: var(--ink-60); }
+  .cta { margin-top: 32px; }
+  footer { border-top: 1.5px solid var(--ink); padding: 32px 0 48px; display: flex; gap: 20px; flex-wrap: wrap; align-items: baseline; }
+  footer .wordmark { font-size: 22px; }
+  footer .meta { font: 400 13px/1.7 var(--mono); color: var(--ink-60); margin-left: auto; text-align: right; }
+  footer .meta a { color: var(--ink); }
+  @media (max-width: 700px) { footer .meta { text-align: left; margin-left: 0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="/" aria-label="grow home"><span data-bloom></span><span class="wordmark">grow<span class="seed">.</span></span></a>
+    <div class="sp"></div>
+    <a class="l" href="https://github.com/shiftbloom-studio/grow">GitHub</a>
+    <a class="btn ghost sm" href="/app">Dashboard</a>
+  </nav>
+
+  <div class="label">reference</div>
+  <h1>Chat commands<span class="seed">.</span></h1>
+  <p class="lead">Everything your viewers can type, with an example for each. Numbers in brackets are optional and only count your own tasks, starting at 1. You can swap the <code>!</code> for another symbol in the dashboard.</p>
+
+  <section>
+    <div class="label">for everyone</div>
+    <h2>Adding and finishing tasks</h2>
+    <div class="cmd"><div class="name">!task &lt;text&gt;<small>also !add, !todo</small></div><div><p>Adds a task to the list under your name. Each viewer can have three open tasks by default.</p><div class="ex">viewer_one: <b>!task read chapter 4</b></div></div></div>
+    <div class="cmd"><div class="name">!done [n]<small>also !check, !finish</small></div><div><p>Finishes your first open task, or your n-th task if you add a number.</p><div class="ex">viewer_one: <b>!done 2</b></div></div></div>
+    <div class="cmd"><div class="name">!undo [n]<small>also !uncheck</small></div><div><p>Reopens the task you finished last, or your n-th task.</p><div class="ex">viewer_one: <b>!undo</b></div></div></div>
+    <div class="cmd"><div class="name">!edit [n] &lt;text&gt;</div><div><p>Changes the text of your latest open task, or of your n-th task.</p><div class="ex">viewer_one: <b>!edit 1 read chapters 4 and 5</b></div></div></div>
+    <div class="cmd"><div class="name">!remove [n]<small>also !delete, !rm</small></div><div><p>Deletes one of your tasks.</p><div class="ex">viewer_one: <b>!remove 3</b></div></div></div>
+    <div class="cmd"><div class="name">!mytasks<small>also !tasks</small></div><div><p>Briefly highlights your tasks on the overlay, so you can find them on a long list.</p><div class="ex">viewer_one: <b>!mytasks</b></div></div></div>
+  </section>
+
+  <section>
+    <div class="label">for you and your mods</div>
+    <h2>Cleaning up</h2>
+    <div class="cmd"><div class="name">!cleardone</div><div><p>Removes every finished task.</p></div></div>
+    <div class="cmd"><div class="name">!clearuser @name</div><div><p>Removes all tasks of one viewer.</p><div class="ex">mod: <b>!clearuser @viewer_two</b></div></div></div>
+    <div class="cmd"><div class="name">!clearall</div><div><p>Empties the whole list. From the dashboard you get five seconds to undo it, from chat you don't.</p></div></div>
+    <p class="muted" style="margin-top:20px">If a command doesn't work, the overlay says why for a few seconds, for example when someone already has three open tasks. You can turn that off in the dashboard.</p>
+  </section>
+
+  <section>
+    <div class="label">obs studio</div>
+    <h2>Putting it in OBS</h2>
+    <ol class="obs">
+      <li>Open the <a href="/app">dashboard</a>, make an overlay and copy its link.</li>
+      <li>In OBS, click <b>+</b> under Sources, choose <b>Browser</b> and paste the link as the URL. The dashboard shows the width and height that fit your settings.</li>
+      <li>Place it where you like. The background is transparent, so only the list shows. Streamlabs and other tools that have a browser source work the same way.</li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="label">faq</div>
+    <h2>Questions people ask</h2>
+    <dl>
+      <div><dt>Do I need a bot account?</dt><dd>No. grow reads your chat anonymously, and only while your overlay is open.</dd></div>
+      <div><dt>Can viewers see or change my settings?</dt><dd>No. The overlay link can only read the list. Settings live in the dashboard, which needs your key.</dd></div>
+      <div><dt>What happens if my overlay link leaks?</dt><dd>Make a new overlay link in the dashboard. The old one stops working right away.</dd></div>
+      <div><dt>Does grow work with YouTube or Kick?</dt><dd>Not yet. grow reads Twitch chat. You can still add tasks yourself from the dashboard.</dd></div>
+      <div><dt>Is it free?</dt><dd>Yes. The hosted version is free, and the code is open source under AGPL-3.0-or-later, so you can also run your own copy on Cloudflare.</dd></div>
+    </dl>
+    <p class="cta"><a class="btn primary" href="/app">Make an overlay</a></p>
+  </section>
+
+  <footer>
+    <a class="wordmark" href="https://shiftbloom.studio">shiftbloom <small>studio</small><span class="seed">.</span></a>
+    <div class="meta">grow is made by shiftbloom studio in Hamburg.<br>Source on <a href="https://github.com/shiftbloom-studio/grow">GitHub</a> under AGPL-3.0-or-later<br><a href="/privacy">Privacy</a> · <a href="/imprint">Imprint</a></div>
+  </footer>
+</div>
+<script src="/assets/bloom.js"></script>
+</body>
+</html>

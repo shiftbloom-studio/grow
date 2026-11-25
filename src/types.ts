@@ -41,6 +41,8 @@ export interface Settings {
   maxHeight: number;
   autoScroll: boolean;
   scrollSpeed: number;
+  /** Show a short notice on the overlay when chat tries something that isn't allowed. */
+  showRejections: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -60,6 +62,7 @@ export const DEFAULT_SETTINGS: Settings = {
   maxHeight: 640,
   autoScroll: true,
   scrollSpeed: 30,
+  showRejections: true,
 };
 
 export interface ChatUser {

@@ -5,7 +5,11 @@ import { cleanText, isMod, hasRole, parseCommand, parseIrcPrivmsg } from "./comm
 import { DEFAULT_SETTINGS, type ChatUser, type Env, type Settings, type Task } from "./types";
 
 type SocketRole = "admin" | "overlay";
-interface Attachment { role: SocketRole }
+interface Attachment { role: SocketRole; preview?: boolean }
+
+/** Why a chat command did nothing. Shown on the overlay (if enabled) and in the dashboard log. */
+export type Rejection = "limit" | "list full" | "not allowed" | "mods only" | "no task" | "cooldown";
+export interface LogEntry { at: number; user: string; text: string; result: string }
 
 const STREAMER: ChatUser = { userId: "streamer", login: "streamer", displayName: "Streamer", color: "", roles: ["everyone", "broadcaster"] };
 const PALETTE = ["#ff7a90", "#ffb86b", "#ffe66d", "#7cf29c", "#6bd5ff", "#9d8cff", "#ff8cf0", "#8cffe4"];
@@ -34,7 +38,7 @@ function clampSettings(input: Partial<Settings>, base: Settings): Settings {
     const v = num(input[k], lo, hi);
     if (v !== undefined) s[k] = v;
   }
-  for (const k of ["chatEnabled", "showDone", "groupByUser", "autoScroll"] as const) {
+  for (const k of ["chatEnabled", "showDone", "groupByUser", "autoScroll", "showRejections"] as const) {
     const v = bool(input[k]);
     if (v !== undefined) s[k] = v;
   }
@@ -48,6 +52,8 @@ export class ChannelRoom extends DurableObject<Env> {
   private ircConnecting = false;
   private seen = new Set<string>();
   private cooldown = new Map<string, number>();
+  private rejectNotice = new Map<string, number>();
+  private log: LogEntry[] = [];
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -106,6 +112,32 @@ export class ChannelRoom extends DurableObject<Env> {
 
   // ---------- chat ----------
   handleChat(msg: { id: string; user: ChatUser; text: string }): string | null {
+    const result = this.runChat(msg);
+    if (result === null) return null;
+    this.record(msg.user, msg.text, result);
+    if (result !== "ok") this.reject(msg.user, result as Rejection);
+    return result;
+  }
+
+  private record(user: ChatUser, text: string, result: string) {
+    const entry: LogEntry = { at: Date.now(), user: user.displayName, text: cleanText(text, 160), result };
+    this.log.push(entry);
+    if (this.log.length > 20) this.log.shift();
+    for (const ws of this.ctx.getWebSockets("admin")) this.send(ws, { t: "log", entry });
+  }
+
+  /** Tell the overlay why nothing happened, at most once per viewer every 10 s. Cooldown hits stay silent. */
+  private reject(user: ChatUser, reason: Rejection) {
+    if (reason === "cooldown" || !this.settings.showRejections) return;
+    const now = Date.now();
+    if ((this.rejectNotice.get(user.userId) ?? 0) > now) return;
+    this.rejectNotice.set(user.userId, now + 10_000);
+    if (this.rejectNotice.size > 500) this.rejectNotice.clear();
+    const detail = reason === "limit" ? this.settings.maxPerUser : reason === "list full" ? this.settings.maxTasks : undefined;
+    this.broadcast({ t: "rejected", user: user.displayName, color: user.color || colorFor(user.login), reason, detail });
+  }
+
+  private runChat(msg: { id: string; user: ChatUser; text: string }): string | null {
     if (this.seen.has(msg.id)) return null;
     this.seen.add(msg.id);
     if (this.seen.size > 500) this.seen = new Set([...this.seen].slice(-250));
@@ -203,7 +235,8 @@ export class ChannelRoom extends DurableObject<Env> {
           if (msg) this.handleChat(msg);
         }
       });
-      const drop = () => { if (this.irc === ws) { this.irc = null; this.broadcastChat(); } };
+      // Twitch drops idle or restarting connections; try again in a few seconds instead of waiting for the next minute alarm
+      const drop = () => { if (this.irc === ws) { this.irc = null; this.broadcastChat(); this.ctx.storage.setAlarm(Date.now() + 5_000).catch(() => {}); } };
       ws.addEventListener("close", drop);
       ws.addEventListener("error", drop);
       this.irc = ws;
@@ -221,6 +254,14 @@ export class ChannelRoom extends DurableObject<Env> {
   private broadcast(data: unknown) { for (const ws of this.ctx.getWebSockets()) this.send(ws, data); }
   private broadcastTasks() { this.broadcast({ t: "tasks", tasks: this.tasks() }); }
   private broadcastChat() { this.broadcast({ t: "chat", connected: !!this.irc, channel: this.settings.twitchLogin }); }
+  /** Live overlays (OBS), not the dashboard preview. */
+  private liveOverlays(except?: WebSocket) {
+    return this.ctx.getWebSockets("live").filter((w) => w !== except && w.readyState === WebSocket.OPEN).length;
+  }
+  private broadcastPresence(except?: WebSocket) {
+    const overlays = this.liveOverlays(except);
+    for (const ws of this.ctx.getWebSockets("admin")) if (ws !== except) this.send(ws, { t: "presence", overlays });
+  }
   private snapshot() {
     return { t: "state", tasks: this.tasks(), settings: this.settings, chat: { connected: !!this.irc, channel: this.settings.twitchLogin } };
   }
@@ -230,10 +271,17 @@ export class ChannelRoom extends DurableObject<Env> {
     if (url.pathname === "/ws") {
       if (request.headers.get("Upgrade") !== "websocket") return new Response("expected websocket", { status: 426 });
       const role: SocketRole = url.searchParams.get("role") === "admin" ? "admin" : "overlay";
+      const preview = role === "overlay" && url.searchParams.get("preview") === "1";
       const pair = new WebSocketPair();
-      this.ctx.acceptWebSocket(pair[1], [role]);
-      pair[1].serializeAttachment({ role } satisfies Attachment);
+      this.ctx.acceptWebSocket(pair[1], role === "admin" ? ["admin"] : ["overlay", preview ? "preview" : "live"]);
+      pair[1].serializeAttachment({ role, preview } satisfies Attachment);
       this.send(pair[1], this.snapshot());
+      if (role === "admin") {
+        this.send(pair[1], { t: "presence", overlays: this.liveOverlays() });
+        this.send(pair[1], { t: "logs", entries: this.log });
+      } else if (!preview) {
+        this.broadcastPresence();
+      }
       await this.ensureIrc();
       await this.ctx.storage.setAlarm(Date.now() + 60_000);
       return new Response(null, { status: 101, webSocket: pair[0] });
@@ -247,6 +295,7 @@ export class ChannelRoom extends DurableObject<Env> {
     if (url.pathname === "/state") return Response.json(this.snapshot());
     if (url.pathname === "/kick-overlays" && request.method === "POST") {
       for (const ws of this.ctx.getWebSockets("overlay")) { this.send(ws, { t: "revoked" }); try { ws.close(4001, "overlay key rotated"); } catch {} }
+      this.broadcastPresence();
       return Response.json({ ok: true });
     }
     if (url.pathname === "/wipe" && request.method === "POST") {
@@ -322,6 +371,7 @@ export class ChannelRoom extends DurableObject<Env> {
         await this.ctx.storage.put("settings", this.settings);
         this.broadcast({ t: "settings", settings: this.settings });
         await this.ensureIrc();
+        this.broadcastChat();
         return;
       }
       case "simulate": {
@@ -335,15 +385,23 @@ export class ChannelRoom extends DurableObject<Env> {
         });
         return this.send(ws, { t: "simulated", result });
       }
+      case "delete-many": {
+        // the dashboard sends this after its 5 s undo window
+        const ids = Array.isArray(msg.ids) ? (msg.ids as unknown[]).filter((x): x is string => typeof x === "string").slice(0, 500) : [];
+        for (const tid of ids) this.ctx.storage.sql.exec("DELETE FROM tasks WHERE id=?", tid);
+        return this.broadcastTasks();
+      }
     }
   }
 
   async webSocketClose(ws: WebSocket, code: number) {
     try { ws.close(code === 1005 ? 1000 : code, "bye"); } catch {}
+    this.broadcastPresence(ws);
     await this.ensureIrc();
   }
 
-  async webSocketError() {
+  async webSocketError(ws: WebSocket) {
+    this.broadcastPresence(ws);
     await this.ensureIrc();
   }
 }

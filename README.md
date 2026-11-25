@@ -3,7 +3,7 @@
 [![CI](https://github.com/shiftbloom-studio/grow/actions/workflows/ci.yml/badge.svg)](https://github.com/shiftbloom-studio/grow/actions/workflows/ci.yml)
 [![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-FF2E52.svg)](LICENSE)
 
-**Live, chat-driven task lists for OBS.** Viewers add goals with `!task`, tick them off with `!done`, and everyone watches the list grow in real time. Built for study, cowork and focus streams.
+grow puts a to-do list on your stream that your chat can edit. Viewers add goals with `!task` and tick them off with `!done`, and the list updates in OBS while everyone works. It started as a tool for study streams, where watching other people finish things turns out to be motivating.
 
 Hosted version, free to use: **https://grow.shiftbloom.studio**
 
@@ -14,7 +14,7 @@ Hosted version, free to use: **https://grow.shiftbloom.studio**
 3. Enter your Twitch channel in the settings.
 4. In OBS add a **Browser** source with the overlay link. The background is transparent, no extra CSS needed.
 
-No bot account is needed: grow reads chat anonymously and only while an overlay or the dashboard is open.
+No bot account is needed. grow reads chat anonymously and only while an overlay or the dashboard is open. The full command reference with examples is at [grow.shiftbloom.studio/commands](https://grow.shiftbloom.studio/commands).
 
 ### Chat commands
 
@@ -32,7 +32,7 @@ The prefix, who may add tasks (everyone, subs, VIPs, mods), the per-viewer limit
 
 ### Overlay options
 
-Themes (`glass`, `minimal`, `neon`, `paper`, `bloom`), accent color, font size, width, max height, grouping by viewer, hiding finished tasks and auto-scroll are set live from the dashboard. Every overlay link also accepts URL overrides, e.g. `?theme=neon&accent=ff00aa&toasts=0`.
+Themes (`glass`, `minimal`, `neon`, `paper`, `bloom`), accent color, font size, width, max height, grouping by viewer, hiding finished tasks, auto-scroll and the short notice viewers see when a command doesn't work are set live from the dashboard. Every overlay link also accepts URL overrides, e.g. `?theme=neon&accent=ff00aa&toasts=0`.
 
 ## Architecture
 
@@ -50,9 +50,10 @@ Dashboard ───────ws──────┤   Worker (router, auth)  
 | Worker | `src/index.ts` | pages, REST API, cookie sessions, optional Twitch OAuth, security headers |
 | Durable Object `ChannelRoom` | `src/channel.ts` | one per channel; owns tasks, applies chat commands, fans out updates |
 | Parser | `src/commands.ts` | chat commands and Twitch IRC lines |
+| Fonts | `src/fonts.ts` | serves the brand fonts from the Worker's own origin, cached at the edge |
 | D1 | `migrations/` | channel accounts, hashed dashboard keys, sessions |
 
-Security: overlay links are read-only; dashboard keys and session tokens are stored only as SHA-256 hashes; strict CSP and security headers; per-IP rate limit on sign-in and overlay creation; no `workers.dev` route, so traffic always passes the zone's WAF. See [SECURITY.md](SECURITY.md).
+Overlay links are read-only. Dashboard keys and session tokens are stored only as SHA-256 hashes. Pages send a strict CSP and the usual security headers, sign-in and overlay creation have a per-IP rate limit, and there is no `workers.dev` route, so traffic always passes the zone's WAF. Browsers never contact a third party: fonts are served from the same origin. See [SECURITY.md](SECURITY.md).
 
 ## Development
 

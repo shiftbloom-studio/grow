@@ -3,44 +3,67 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>grow. dashboard</title>
+<title>grow. · dashboard</title>
+<meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&f[]=general-sans@400,500,600&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="preload" href="/fonts/general-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/fonts.css">
 <link rel="stylesheet" href="/assets/brand.css">
 <style>
-  header { display: flex; align-items: center; gap: 16px; padding: 20px clamp(20px, 4vw, 40px); border-bottom: 1.5px solid var(--ink); background: var(--paper); position: sticky; top: 0; z-index: 5; }
-  header .wordmark { font-size: 26px; }
+  header { display: flex; align-items: center; gap: 12px; padding: 18px clamp(20px, 4vw, 40px); border-bottom: 1.5px solid var(--ink); background: var(--paper); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
+  header .wordmark { font-size: 26px; margin-right: 8px; }
   header .sp { flex: 1; }
-  .pill { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; padding: 7px 11px; border-radius: 999px; background: var(--paper-warm); color: var(--ink-60); display: inline-flex; align-items: center; gap: 7px; }
+  .pill { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; padding: 7px 11px; border-radius: 999px; background: var(--paper-warm); color: var(--ink-60); display: inline-flex; align-items: center; gap: 7px; border: 0; }
   .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-40); }
   .pill.on { background: var(--blush); color: var(--ink); }
-  .pill.on::before { background: var(--bloom); animation: twinkle 4.5s infinite; }
+  .pill.on::before { background: var(--bloom); }
+  .pill.warn::before { background: var(--root); animation: twinkle 1.2s infinite; }
+  button.pill { cursor: pointer; }
+  button.pill:hover { color: var(--ink); }
   #who { font: 400 13px var(--mono); color: var(--ink-60); }
-  main { max-width: 1240px; margin: 0 auto; padding: 32px clamp(20px, 4vw, 40px) 64px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+  main { max-width: 1240px; margin: 0 auto; padding: 32px clamp(20px, 4vw, 40px) 96px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: start; }
   @media (max-width: 960px) { main { grid-template-columns: 1fr; } }
-  .stack { display: flex; flex-direction: column; gap: 24px; }
-  .panel { background: var(--paper-warm); border-radius: 24px; padding: 24px; animation: unfold .6s var(--ease-bloom) both; }
+  .stack { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+  .full { grid-column: 1 / -1; }
+  .panel { background: var(--paper-warm); border-radius: 24px; padding: 24px; animation: unfold-soft .45s var(--ease-bloom) both; }
   .panel h2 { font-size: 24px; margin: 6px 0 18px; }
-  .panel .label + h2 { margin-top: 6px; }
+  .saved { margin-left: 12px; vertical-align: middle; font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--root); opacity: 0; transition: opacity .3s var(--ease-settle); }
+  .saved.show { opacity: 1; }
   .row { display: flex; gap: 10px; align-items: center; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
   @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+  fieldset { border: 0; padding: 0; margin: 0 0 22px; }
+  legend, summary { font: 600 15px/1.3 var(--sans); margin-bottom: 12px; padding: 0; }
+  details { margin-top: 4px; }
+  summary { cursor: pointer; }
+  details[open] summary { margin-bottom: 14px; }
   label.f { display: flex; flex-direction: column; gap: 6px; font: 500 11px/1.3 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-60); }
-  label.c { display: flex; gap: 10px; align-items: center; font-size: 15px; cursor: pointer; }
+  label.c { display: flex; gap: 10px; align-items: center; font-size: 15px; line-height: 1.35; cursor: pointer; }
+  label.c input { flex: none; }
+  .setup { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: s; }
+  .setup li { display: flex; gap: 14px; align-items: center; padding: 12px 14px; background: var(--paper); border-radius: 14px; }
+  .setup li::before { counter-increment: s; content: counter(s); flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--ink-40); display: grid; place-items: center; font: 500 12px var(--mono); color: var(--ink-60); }
+  .setup li.ok::before { content: "✓"; background: var(--bloom); border-color: var(--bloom); color: var(--paper); }
+  .setup li.ok span { color: var(--ink-60); }
+  .setup li span { flex: 1; }
+  .setup li .btn { flex: none; }
   .tasks { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-  .tasks li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--paper); animation: unfold .24s var(--ease-bloom) both; }
+  .tasks li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: var(--paper); animation: unfold-soft .24s var(--ease-bloom) both; }
   .tasks li.empty { background: transparent; color: var(--ink-60); padding-left: 0; }
   .tasks li.dragging { opacity: .4; }
-  .tasks .who { font: 500 12px/1.2 var(--mono); min-width: 96px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-60); }
-  .tasks .t { flex: 1; overflow-wrap: anywhere; cursor: text; }
+  .tasks .who { font: 500 12px/1.2 var(--mono); width: 110px; flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-60); }
+  .tasks .t { flex: 1; overflow-wrap: anywhere; min-width: 0; }
+  .tasks .t input { padding: 6px 10px; }
   .tasks li.done .t { color: var(--ink-40); text-decoration: line-through; text-decoration-color: var(--bloom); }
-  .tasks .x { border: 0; background: none; color: var(--ink-40); font-size: 16px; cursor: pointer; padding: 4px 6px; border-radius: 8px; }
-  .tasks .x:hover { color: var(--root); background: var(--blush); }
+  .ib { border: 0; background: none; color: var(--ink-40); font-size: 14px; cursor: pointer; padding: 5px 7px; border-radius: 8px; line-height: 1; }
+  .ib:hover, .ib:focus-visible { color: var(--ink); background: var(--blush); }
+  .ib.del:hover { color: var(--root); }
+  .tasks li .tools { display: flex; gap: 0; opacity: .35; transition: opacity .2s; }
+  .tasks li:hover .tools, .tasks li:focus-within .tools { opacity: 1; }
   .grip { cursor: grab; color: var(--ink-40); user-select: none; font-size: 12px; letter-spacing: -2px; }
   .muted { color: var(--ink-60); font-size: 14px; }
   .muted code, .cmds code { font-family: var(--mono); font-size: 12.5px; background: var(--paper); padding: 2px 6px; border-radius: 6px; color: var(--ink); }
-  .url { font: 400 13px/1.4 var(--mono); background: var(--paper); border: 1.5px solid var(--ink-12); border-radius: 12px; padding: 11px 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; filter: blur(4px); transition: filter .24s var(--ease-settle); cursor: pointer; }
+  .url { font: 400 13px/1.4 var(--mono); background: var(--paper); border: 1.5px solid var(--ink-12); border-radius: 12px; padding: 11px 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; filter: blur(4px); transition: filter .24s var(--ease-settle); cursor: pointer; }
   .url.reveal, .url:hover { filter: none; }
   iframe { width: 100%; height: 380px; border: 0; border-radius: 16px; background: repeating-conic-gradient(#efe8e5 0 25%, #f7f2f0 0 50%) 0 0/24px 24px; margin-top: 14px; }
   .center { min-height: calc(100vh - 80px); display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 48px; max-width: 1100px; margin: 0 auto; padding: 32px clamp(20px, 4vw, 40px); }
@@ -52,106 +75,190 @@
   .sep::before, .sep::after { content: ""; flex: 1; height: 1px; background: var(--ink-12); }
   .twitch { background: #9146FF; border-color: #9146FF; color: #fff; width: 100%; }
   .twitch:hover { background: #772CE8; border-color: #772CE8; color: #fff; }
-  .notice { background: var(--blush); border-radius: 24px; padding: 22px 24px; animation: unfold .6s var(--ease-bloom) both; }
+  .notice { background: var(--blush); border-radius: 24px; padding: 22px 24px; animation: unfold-soft .45s var(--ease-bloom) both; }
   .notice h3 { font-size: 22px; margin-bottom: 6px; }
-  .notice code { display: inline-block; font: 500 14px/1.4 var(--mono); word-break: break-all; background: var(--paper); padding: 8px 12px; border-radius: 10px; margin: 10px 8px 0 0; }
+  .notice code { display: block; font: 500 14px/1.4 var(--mono); word-break: break-all; background: var(--paper); padding: 10px 12px; border-radius: 10px; margin: 12px 0; }
   .cmds { font-size: 14px; color: var(--ink-60); margin: 14px 0 0; display: grid; gap: 6px; }
-  .err { color: var(--root); font-size: 14px; min-height: 1.2em; }
+  .err { color: var(--root); font-size: 14px; min-height: 1.2em; margin: 8px 0 0; }
+  .log { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 14px; }
+  .log li { display: grid; grid-template-columns: 48px 120px 1fr auto; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--ink-06); align-items: baseline; }
+  .log time, .log .u { font: 400 12px var(--mono); color: var(--ink-60); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .log .c { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+  .log .r { font: 500 12px var(--mono); color: var(--ink-60); text-align: right; }
+  .log .r.no { color: var(--root); }
+  @media (max-width: 560px) { .log li { grid-template-columns: 1fr auto; } .log time { display: none; } .log .u { grid-column: 1; } }
+  .undo { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--paper); border-radius: 999px; padding: 8px 8px 8px 20px; display: flex; gap: 14px; align-items: center; font-size: 15px; z-index: 20; animation: unfold-soft .3s var(--ease-bloom) both; }
+  .undo .btn { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+  dialog { border: 1.5px solid var(--ink); border-radius: 24px; padding: 26px; max-width: 440px; width: calc(100% - 40px); color: var(--ink); }
+  dialog::backdrop { background: rgba(26,18,22,.35); }
+  dialog h3 { font-size: 24px; margin-bottom: 10px; }
+  dialog p { margin: 0 0 20px; color: var(--ink-60); }
+  dialog .row { justify-content: flex-end; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <header>
   <a class="wordmark" href="/">grow<span class="seed">.</span></a>
-  <span class="pill" id="chatPill" hidden>chat offline</span>
+  <span class="pill" id="connPill" hidden>connecting</span>
+  <button class="pill" id="chatPill" hidden title="Change the Twitch channel">chat</button>
   <div class="sp"></div>
   <span class="muted" id="who"></span>
-  <button class="btn ghost sm" id="logout" hidden>Log out</button>
+  <button class="btn ghost sm" id="logout" hidden>Sign out</button>
 </header>
 
 <section class="center" id="auth" hidden>
   <div class="auth">
     <div class="label">grow · dashboard</div>
-    <h1>Start your overlay<span class="seed">.</span></h1>
-    <p class="muted" style="margin:0 0 8px;font-size:17px">A live task list for your stream. Viewers add tasks from chat, you get one link for OBS.</p>
+    <h1>Make an overlay<span class="seed">.</span></h1>
+    <p class="muted" style="margin:0 0 8px;font-size:17px">You'll get a link for OBS and a key to sign in with.</p>
     <a href="/auth/twitch" id="twitchBtn" hidden><span class="btn twitch">Continue with Twitch</span></a>
     <div class="sep" id="twitchSep" hidden>or</div>
     <label class="f">Overlay name<input type="text" id="newName" maxlength="40" placeholder="e.g. studyroom"></label>
     <button class="btn primary" id="create">Create overlay</button>
-    <div class="sep">already have a key</div>
-    <div class="row"><input type="text" id="key" placeholder="grow_…" autocomplete="off" spellcheck="false" style="font-family:var(--mono)"><button class="btn" id="login">Sign in</button></div>
-    <div class="err" id="authErr"></div>
+    <div class="sep">Already have a key?</div>
+    <div class="row"><input type="text" id="key" placeholder="grow_…" autocomplete="off" spellcheck="false" style="font-family:var(--mono)" aria-label="Dashboard key"><button class="btn" id="login">Sign in</button></div>
+    <div class="err" id="authErr" role="alert"></div>
   </div>
   <div class="flower bloom-live"><div data-bloom></div></div>
 </section>
 
 <main id="dash" hidden>
-  <div class="stack">
-    <div class="notice" id="welcome" hidden>
-      <h3>Keep this key safe<span class="seed">.</span></h3>
-      <div class="muted">It's your login for other devices and it's shown only once.</div>
-      <code id="welcomeKey"></code><button class="btn sm" id="copyKey">Copy</button> <button class="btn ghost sm" id="dismiss">Saved it</button>
+  <div class="full notice" id="welcome" hidden>
+    <h3>Save this key now<span class="seed">.</span></h3>
+    <div class="muted">It's your login on other devices, and we won't show it again.</div>
+    <code id="welcomeKey"></code>
+    <div class="row" style="flex-wrap:wrap">
+      <button class="btn sm" id="copyKey">Copy</button>
+      <button class="btn sm" id="downloadKey">Download as .txt</button>
+      <button class="btn ghost sm" id="dismiss" disabled title="Copy or download the key first">I've saved it</button>
     </div>
+  </div>
+
+  <div class="full panel" id="setupPanel" hidden>
+    <div class="label">getting started</div><h2>Four things, then you're live<span class="seed">.</span></h2>
+    <ol class="setup">
+      <li id="s-key"><span>Save your dashboard key.</span></li>
+      <li id="s-channel"><span>Tell grow your Twitch channel.</span><button class="btn sm" id="goChannel">Add channel</button></li>
+      <li id="s-copy"><span>Copy the overlay link.</span><button class="btn sm" id="setupCopy">Copy link</button></li>
+      <li id="s-obs"><span id="s-obs-text">Add it to OBS as a Browser source. This turns green once OBS has it open.</span></li>
+    </ol>
+  </div>
+
+  <div class="stack">
     <div class="panel">
       <div class="label">live list</div><h2>Tasks<span class="seed">.</span></h2>
-      <div class="row"><input type="text" id="newTask" maxlength="140" placeholder="Add a task as streamer… (Enter)"><button class="btn primary" id="add">Add</button></div>
+      <div class="row"><input type="text" id="newTask" maxlength="140" placeholder="Add a task as the streamer (Enter)" aria-label="New task"><button class="btn primary" id="add">Add</button></div>
+      <div class="err" id="taskErr" role="alert"></div>
       <ul class="tasks" id="tasks"></ul>
       <div class="row" style="margin-top:12px;justify-content:flex-end">
-        <button class="btn ghost sm" id="clearDone">Clear done</button><button class="btn danger sm" id="clearAll">Clear all</button>
+        <button class="btn ghost sm" id="clearDone">Clear finished</button><button class="btn danger sm" id="clearAll">Clear all</button>
       </div>
     </div>
     <div class="panel">
+      <div class="label">from chat</div><h2>Recent commands<span class="seed">.</span></h2>
+      <ul class="log" id="log"><li class="muted" style="display:block;border:0">Nothing yet. Commands from chat and the playground show up here, including the ones grow ignored and why.</li></ul>
+    </div>
+    <div class="panel">
       <div class="label">playground</div><h2>Try a chat command<span class="seed">.</span></h2>
-      <div class="row"><input type="text" id="simUser" value="viewer" style="max-width:140px"><input type="text" id="simText" placeholder="!task read chapter 3"><button class="btn" id="sim">Send</button></div>
-      <div class="muted mono" id="simResult" style="margin-top:10px;font-size:13px"></div>
+      <div class="row"><input type="text" id="simUser" value="viewer" style="max-width:140px" aria-label="Viewer name"><input type="text" id="simText" placeholder="!task read chapter 3" aria-label="Chat message"><button class="btn" id="sim">Send</button></div>
+      <div class="muted mono" id="simResult" style="margin-top:10px;font-size:13px" aria-live="polite"></div>
       <ul class="cmds seeds" id="cmdHelp"></ul>
     </div>
   </div>
   <div class="stack">
     <div class="panel">
       <div class="label">obs browser source</div><h2>Your overlay<span class="seed">.</span></h2>
-      <div class="row"><div class="url" id="overlayUrl"></div><button class="btn" id="copyUrl">Copy</button></div>
-      <p class="muted">In OBS: Sources → + → Browser, paste the URL, width <span id="wHint">420</span>, height <span id="hHint">700</span>. Keep this URL private. Optional: <code>?theme=bloom&amp;toasts=0</code></p>
+      <div class="row"><div class="url" id="overlayUrl" title="Click to show"></div><button class="btn" id="copyUrl">Copy</button></div>
+      <p class="muted">In OBS, add a Browser source and paste this URL. <span id="wHint">440</span> × <span id="hHint">720</span> is a good size. Treat the link like a password. Add <code>?theme=bloom&amp;toasts=0</code> to force a theme or hide the pop-ups.</p>
       <iframe id="preview" title="Overlay preview"></iframe>
     </div>
     <div class="panel">
-      <div class="label">settings</div><h2>Make it yours<span class="seed">.</span></h2>
-      <div class="grid2" id="settings">
-        <label class="f">Title<input type="text" data-k="title" maxlength="60"></label>
-        <label class="f">Twitch channel<input type="text" data-k="twitchLogin" placeholder="your_login"></label>
-        <label class="f">Theme<select data-k="theme"><option value="glass">Glass</option><option value="minimal">Minimal</option><option value="neon">Neon</option><option value="paper">Paper</option><option value="bloom">Bloom</option></select></label>
-        <label class="f">Accent<input type="color" data-k="accent" style="height:46px;padding:4px;background:var(--paper);border:1.5px solid var(--ink-12);border-radius:12px;width:100%;cursor:pointer"></label>
-        <label class="f">Who can add tasks<select data-k="minRole"><option value="everyone">Everyone</option><option value="subscriber">Subscribers+</option><option value="vip">VIPs+</option><option value="moderator">Mods only</option></select></label>
-        <label class="f">Command prefix<input type="text" data-k="prefix" maxlength="1"></label>
-        <label class="f">Open tasks per viewer<input type="number" data-k="maxPerUser" min="1" max="20"></label>
-        <label class="f">Max tasks total<input type="number" data-k="maxTasks" min="5" max="500"></label>
-        <label class="f">Font size (px)<input type="number" data-k="fontSize" min="10" max="48"></label>
-        <label class="f">Width (px)<input type="number" data-k="width" min="200" max="1920"></label>
-        <label class="f">Max height (px)<input type="number" data-k="maxHeight" min="120" max="1080"></label>
-        <label class="f">Scroll speed (px/s)<input type="number" data-k="scrollSpeed" min="5" max="200"></label>
-        <label class="c"><input type="checkbox" data-k="chatEnabled"> Read Twitch chat</label>
-        <label class="c"><input type="checkbox" data-k="showDone"> Show finished tasks</label>
-        <label class="c"><input type="checkbox" data-k="groupByUser"> Group by viewer</label>
-        <label class="c"><input type="checkbox" data-k="autoScroll"> Auto-scroll long lists</label>
+      <div class="label">settings</div><h2>Overlay settings<span class="seed">.</span><span class="saved" id="saved">saved</span></h2>
+      <div id="settings">
+        <fieldset>
+          <legend>Chat and permissions</legend>
+          <div class="grid2">
+            <label class="f">Twitch channel<input type="text" data-k="twitchLogin" id="channelInput" placeholder="your_login"></label>
+            <label class="f">Who can add tasks<select data-k="minRole"><option value="everyone">Everyone</option><option value="subscriber">Subscribers and up</option><option value="vip">VIPs and up</option><option value="moderator">Mods only</option></select></label>
+            <label class="f">Open tasks per viewer<input type="number" data-k="maxPerUser" min="1" max="20"></label>
+            <label class="f">Max tasks on the list<input type="number" data-k="maxTasks" min="5" max="500"></label>
+            <label class="f">Command prefix<input type="text" data-k="prefix" maxlength="1"></label>
+            <div></div>
+            <label class="c"><input type="checkbox" data-k="chatEnabled"> Read Twitch chat</label>
+            <label class="c"><input type="checkbox" data-k="showRejections"> Tell viewers when a command didn't work</label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Look</legend>
+          <div class="grid2">
+            <label class="f">Title<input type="text" data-k="title" maxlength="60"></label>
+            <label class="f">Theme<select data-k="theme"><option value="glass">Glass</option><option value="minimal">Minimal</option><option value="neon">Neon</option><option value="paper">Paper</option><option value="bloom">Bloom</option></select></label>
+            <label class="f">Accent color<input type="color" data-k="accent" style="height:46px;padding:4px;background:var(--paper);border:1.5px solid var(--ink-12);border-radius:12px;width:100%;cursor:pointer"></label>
+            <div></div>
+            <label class="c"><input type="checkbox" data-k="showDone"> Show finished tasks</label>
+            <label class="c"><input type="checkbox" data-k="groupByUser"> Group by viewer</label>
+          </div>
+        </fieldset>
+        <details>
+          <summary>Size and scrolling</summary>
+          <div class="grid2">
+            <label class="f">Font size (px)<input type="number" data-k="fontSize" min="10" max="48"></label>
+            <label class="f">Width (px)<input type="number" data-k="width" min="200" max="1920"></label>
+            <label class="f">Max height (px)<input type="number" data-k="maxHeight" min="120" max="1080"></label>
+            <label class="f">Scroll speed (px/s)<input type="number" data-k="scrollSpeed" min="5" max="200"></label>
+            <label class="c"><input type="checkbox" data-k="autoScroll"> Scroll long lists</label>
+          </div>
+        </details>
       </div>
     </div>
     <div class="panel">
-      <div class="label">security</div><h2>Keys &amp; links<span class="seed">.</span></h2>
+      <div class="label">security</div><h2>Keys and links<span class="seed">.</span></h2>
       <div class="row" style="flex-wrap:wrap">
         <button class="btn ghost sm" id="rotOverlay">New overlay link</button>
         <button class="btn ghost sm" id="rotAdmin">New dashboard key</button>
         <button class="btn danger sm" id="del">Delete overlay</button>
       </div>
-      <p class="muted">A new overlay URL disconnects the old one immediately. A new dashboard key signs out all other devices.</p>
+      <p class="muted">A new overlay link breaks the old one right away, so update OBS afterwards. A new dashboard key signs out every other device.</p>
     </div>
   </div>
 </main>
+
+<div class="undo" id="undo" hidden role="status"><span id="undoText"></span><button class="btn sm" id="undoBtn">Undo</button></div>
+
+<dialog id="dlg">
+  <h3 id="dlgTitle"></h3>
+  <p id="dlgText"></p>
+  <input type="text" id="dlgInput" hidden autocomplete="off" spellcheck="false" style="margin:-6px 0 20px;font-family:var(--mono)" aria-label="Confirmation">
+  <div class="row"><button class="btn ghost sm" id="dlgCancel">Cancel</button><button class="btn sm" id="dlgOk"></button></div>
+</dialog>
 
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
   const post = (url, body) => fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}) });
-  let ws, me, settings, tasks = [], retry = 0, saveTimer, pending = {};
+  const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+  let ws, me, settings, tasks = [], retry = 0, saveTimer, pending = {}, awaitingSave = false, outbox = [], overlays = 0, chatState = null;
+  let hidden = new Set(), undoTimer = null, undoFlush = null;
+
+  const REASONS = {
+    ok: "done", limit: "open-task limit reached", "list full": "list is full", "not allowed": "not allowed to add",
+    "mods only": "mods only", "no task": "no matching task", cooldown: "too fast, ignored",
+  };
+
+  // ---------- dialogs instead of confirm()/prompt() ----------
+  function ask(title, text, ok, danger, typed) {
+    return new Promise((resolve) => {
+      $("dlgTitle").textContent = title; $("dlgText").textContent = text; $("dlgOk").textContent = ok;
+      $("dlgOk").className = "btn sm " + (danger ? "danger" : "primary");
+      const inp = $("dlgInput"); inp.hidden = !typed; inp.value = ""; $("dlgOk").disabled = !!typed;
+      inp.oninput = () => ($("dlgOk").disabled = inp.value.trim() !== typed);
+      const done = (v) => { $("dlg").close(); resolve(v); };
+      $("dlgOk").onclick = () => done(true); $("dlgCancel").onclick = () => done(false);
+      $("dlg").oncancel = () => resolve(false);
+      $("dlg").showModal(); if (typed) inp.focus();
+    });
+  }
 
   async function boot() {
     const cfg = await fetch("/api/config").then((r) => r.json()).catch(() => ({}));
@@ -165,11 +272,19 @@
     startDash();
   }
 
-  function showKey(k) { $("welcome").hidden = false; $("welcomeKey").textContent = k; }
+  let keyHandled = false;
+  function showKey(k) {
+    keyHandled = false; $("dismiss").disabled = true;
+    $("welcome").hidden = false; $("welcomeKey").textContent = k;
+  }
+  const keyStep = () => { keyHandled = true; $("dismiss").disabled = false; $("dismiss").title = ""; };
 
   async function login(key) {
+    $("authErr").textContent = "";
     const r = await post("/api/login", { key });
-    if (!r.ok) { $("auth").hidden = false; $("authErr").textContent = "That key did not work."; return; }
+    if (r.status === 429) { $("auth").hidden = false; $("authErr").textContent = "Too many requests. Wait a minute and try again."; return; }
+    if (!r.ok) { $("auth").hidden = false; $("authErr").textContent = "That key doesn't match any overlay."; return; }
+    store.set("grow:keySaved", "1");
     location.reload();
   }
 
@@ -182,48 +297,127 @@
 
   function setOverlay(u) { me.overlayUrl = u; $("overlayUrl").textContent = u; $("preview").src = new URL(u).pathname + "?preview=1"; }
 
+  // ---------- socket ----------
+  function conn(state) {
+    const p = $("connPill"); p.hidden = false;
+    p.textContent = state === "on" ? "connected" : "reconnecting";
+    p.className = "pill " + (state === "on" ? "on" : "warn");
+  }
   function connect() {
     ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/api/ws");
-    ws.onopen = () => { retry = 0; };
+    ws.onopen = () => { retry = 0; conn("on"); const q = outbox; outbox = []; q.forEach((m) => ws.send(m)); };
     ws.onmessage = (e) => {
       const m = JSON.parse(e.data);
       if (m.t === "state") { tasks = m.tasks; settings = m.settings; renderTasks(); renderSettings(); chat(m.chat); }
       else if (m.t === "tasks") { tasks = m.tasks; renderTasks(); }
-      else if (m.t === "settings") { settings = m.settings; renderSettings(); }
+      else if (m.t === "settings") { settings = m.settings; renderSettings(); if (awaitingSave) { awaitingSave = false; flashSaved(); } }
       else if (m.t === "chat") chat(m);
-      else if (m.t === "simulated") $("simResult").textContent = "→ " + (m.result || "ignored (not a command)");
-      else if (m.t === "error") alert(m.message);
+      else if (m.t === "presence") { overlays = m.overlays; renderSetup(); }
+      else if (m.t === "logs") { if (m.entries.length) { $("log").replaceChildren(); m.entries.forEach(addLog); } }
+      else if (m.t === "log") addLog(m.entry);
+      else if (m.t === "simulated") $("simResult").textContent = m.result ? "→ " + (REASONS[m.result] || m.result) : "→ not a command, nothing happened";
+      else if (m.t === "error") taskError(m.message);
       else if (m.t === "revoked") location.reload();
     };
-    ws.onclose = (e) => { if (e.code === 4002) return location.reload(); setTimeout(connect, Math.min(15000, 500 * 2 ** retry++)); };
+    ws.onclose = (e) => { if (e.code === 4002) return location.reload(); conn("off"); setTimeout(connect, Math.min(15000, 500 * 2 ** retry++)); };
   }
-  const send = (o) => ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
-  setInterval(() => send({ op: "ping" }), 30000);
+  // queue while reconnecting instead of dropping the action
+  const send = (o) => { const s = JSON.stringify(o); if (ws && ws.readyState === 1) ws.send(s); else outbox.push(s); };
+  setInterval(() => ws && ws.readyState === 1 && ws.send('{"op":"ping"}'), 30000);
+
+  function taskError(reason) {
+    const msg = reason === "list full" ? `The list is full (${settings.maxTasks} tasks). Clear finished tasks or raise the limit in the settings.` : "That didn't work: " + reason;
+    $("taskErr").textContent = msg; setTimeout(() => ($("taskErr").textContent = ""), 6000);
+  }
+
+  function flashSaved() { $("saved").classList.add("show"); setTimeout(() => $("saved").classList.remove("show"), 1400); }
 
   function chat(c) {
+    chatState = c;
     const p = $("chatPill"); p.hidden = false;
-    p.textContent = c.connected ? "#" + c.channel : (c.channel ? "chat offline" : "no channel set");
-    p.classList.toggle("on", !!c.connected);
+    if (!c.channel) { p.textContent = "no channel set"; p.className = "pill warn"; }
+    else if (settings && !settings.chatEnabled) { p.textContent = "chat not connected"; p.className = "pill"; }
+    else if (c.connected) { p.textContent = "reading #" + c.channel; p.className = "pill on"; }
+    else { p.textContent = "chat not connected"; p.className = "pill warn"; }
+    renderSetup();
   }
+  $("chatPill").onclick = $("goChannel").onclick = () => { $("channelInput").scrollIntoView({ block: "center", behavior: "smooth" }); $("channelInput").focus(); };
+
+  // ---------- setup checklist ----------
+  function renderSetup() {
+    if (!me || !settings) return;
+    const copied = store.get("grow:copied:" + me.id) === "1";
+    const keySaved = store.get("grow:keySaved") === "1" || (keyHandled && $("welcome").hidden);
+    const steps = { "s-key": keySaved, "s-channel": !!settings.twitchLogin, "s-copy": copied, "s-obs": overlays > 0 };
+    for (const [id, ok] of Object.entries(steps)) $(id).classList.toggle("ok", ok);
+    $("goChannel").hidden = steps["s-channel"]; $("setupCopy").hidden = steps["s-copy"];
+    $("s-obs-text").textContent = overlays > 0 ? `OBS has the overlay open${overlays > 1 ? ` (${overlays} sources)` : ""}.` : "Add it to OBS as a Browser source. This turns green once OBS has it open.";
+    const all = Object.values(steps).every(Boolean);
+    if (all && !$("setupPanel").hidden) store.set("grow:setupDone:" + me.id, "1");
+    $("setupPanel").hidden = all || store.get("grow:setupDone:" + me.id) === "1";
+  }
+
+  // ---------- tasks ----------
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function iconBtn(label, text, fn, cls) { const b = el("button", "ib" + (cls ? " " + cls : ""), text); b.type = "button"; b.setAttribute("aria-label", label); b.title = label; b.onclick = fn; return b; }
 
   function renderTasks() {
     const ul = $("tasks"); ul.replaceChildren();
-    if (!tasks.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = "No tasks yet. Add one or let chat do it."; ul.append(li); return; }
-    tasks.forEach((t, i) => {
-      const li = document.createElement("li"); li.className = t.done ? "done" : ""; li.draggable = true; li.dataset.id = t.id;
-      const grip = document.createElement("span"); grip.className = "grip"; grip.textContent = "⋮⋮";
+    const list = tasks.filter((t) => !hidden.has(t.id));
+    if (!list.length) { ul.append(el("li", "empty", "Nothing here yet. Add one above or wait for chat.")); return; }
+    list.forEach((t, i) => {
+      const li = el("li", t.done ? "done" : ""); li.draggable = true; li.dataset.id = t.id;
+      const grip = el("span", "grip", "⋮⋮"); grip.setAttribute("aria-hidden", "true");
       const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = t.done; cb.onchange = () => send({ op: "toggle", id: t.id });
-      const who = document.createElement("span"); who.className = "who"; who.textContent = t.displayName;
-      const tx = document.createElement("span"); tx.className = "t"; tx.textContent = t.text; tx.title = "Double-click to edit";
-      tx.ondblclick = () => { const v = prompt("Edit task", t.text); if (v && v.trim()) send({ op: "edit", id: t.id, text: v }); };
-      const del = document.createElement("button"); del.className = "x"; del.textContent = "✕"; del.title = "Delete"; del.onclick = () => send({ op: "delete", id: t.id });
-      li.append(grip, cb, who, tx, del);
+      cb.setAttribute("aria-label", (t.done ? "Reopen " : "Finish ") + t.text);
+      const who = el("span", "who", t.displayName);
+      const tx = el("span", "t", t.text); tx.title = "Double-click to edit";
+      const tools = el("span", "tools");
+      const edit = () => {
+        const input = document.createElement("input"); input.type = "text"; input.value = t.text; input.maxLength = 140; input.setAttribute("aria-label", "Edit task");
+        tx.replaceChildren(input); input.focus(); input.select();
+        let closed = false;
+        const close = (save) => { if (closed) return; closed = true; const v = input.value.trim(); if (save && v && v !== t.text) send({ op: "edit", id: t.id, text: v }); renderTasks(); };
+        input.onkeydown = (e) => { if (e.key === "Enter") close(true); if (e.key === "Escape") close(false); };
+        input.onblur = () => close(true);
+      };
+      tx.ondblclick = edit;
+      tools.append(
+        iconBtn("Move up", "↑", () => i > 0 && send({ op: "move", id: t.id, to: tasks.indexOf(list[i - 1]) })),
+        iconBtn("Move down", "↓", () => i < list.length - 1 && send({ op: "move", id: t.id, to: tasks.indexOf(list[i + 1]) })),
+        iconBtn("Edit", "✎", edit),
+        iconBtn("Delete", "✕", () => removeLater([t.id], "Task deleted."), "del"),
+      );
+      li.append(grip, cb, who, tx, tools);
       li.ondragstart = (e) => { li.classList.add("dragging"); e.dataTransfer.setData("text/plain", t.id); };
       li.ondragend = () => li.classList.remove("dragging");
       li.ondragover = (e) => e.preventDefault();
-      li.ondrop = (e) => { e.preventDefault(); send({ op: "move", id: e.dataTransfer.getData("text/plain"), to: i }); };
+      li.ondrop = (e) => { e.preventDefault(); send({ op: "move", id: e.dataTransfer.getData("text/plain"), to: tasks.indexOf(t) }); };
       ul.append(li);
     });
+  }
+
+  // deletions wait 5 s so they can be undone
+  function removeLater(ids, text) {
+    if (!ids.length) return;
+    if (undoFlush) undoFlush();
+    ids.forEach((id) => hidden.add(id));
+    renderTasks();
+    $("undoText").textContent = text; $("undo").hidden = false;
+    undoFlush = () => { clearTimeout(undoTimer); send({ op: "delete-many", ids }); ids.forEach((id) => hidden.delete(id)); $("undo").hidden = true; undoFlush = null; };
+    undoTimer = setTimeout(() => undoFlush && undoFlush(), 5000);
+    $("undoBtn").onclick = () => { clearTimeout(undoTimer); ids.forEach((id) => hidden.delete(id)); undoFlush = null; $("undo").hidden = true; renderTasks(); };
+  }
+  addEventListener("pagehide", () => undoFlush && undoFlush());
+
+  function addLog(e) {
+    const ul = $("log");
+    if (ul.firstElementChild && ul.firstElementChild.classList.contains("muted")) ul.replaceChildren();
+    const li = el("li");
+    const time = el("time", "", new Date(e.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    li.append(time, el("span", "u", e.user), el("span", "c", e.text), el("span", "r" + (e.result === "ok" ? "" : " no"), REASONS[e.result] || e.result));
+    ul.prepend(li);
+    while (ul.children.length > 20) ul.lastElementChild.remove();
   }
 
   function renderSettings() {
@@ -234,39 +428,71 @@
     }
     $("wHint").textContent = settings.width + 20; $("hHint").textContent = settings.maxHeight + 80;
     const p = settings.prefix;
-    $("cmdHelp").innerHTML = "";
-    [[p + "task <text>", "add a task"], [p + "done [n]", "finish your (n-th) task"], [p + "undo [n]", "reopen"], [p + "edit [n] <text>", "edit"], [p + "remove [n]", "delete"], [p + "mytasks", "highlight your tasks"], [p + "cleardone / " + p + "clearall / " + p + "clearuser @name", "mods only"]]
-      .forEach(([c, d]) => { const li = document.createElement("li"); const code = document.createElement("code"); code.textContent = c; li.append(code, " " + d); $("cmdHelp").append(li); });
+    $("cmdHelp").replaceChildren();
+    [[p + "task <text>", "adds a task"], [p + "done [n]", "finishes your first (or n-th) task"], [p + "undo [n]", "reopens it"], [p + "edit [n] <text>", "changes the text"], [p + "remove [n]", "deletes it"], [p + "mytasks", "highlights your tasks"], [p + "cleardone, " + p + "clearall, " + p + "clearuser @name", "for you and your mods"]]
+      .forEach(([c, d]) => { const li = el("li"); li.append(el("code", "", c), " " + d); $("cmdHelp").append(li); });
+    if (chatState) chat(chatState);
+    renderSetup();
   }
 
   document.querySelector("#settings").addEventListener("input", (e) => {
-    const el = e.target; if (!el.dataset.k) return;
-    const v = el.type === "checkbox" ? el.checked : el.type === "number" ? Number(el.value) : el.value;
-    pending[el.dataset.k] = v;
+    const t = e.target; if (!t.dataset.k) return;
+    const v = t.type === "checkbox" ? t.checked : t.type === "number" ? Number(t.value) : t.value;
+    pending[t.dataset.k] = v;
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => { send({ op: "settings", patch: pending }); pending = {}; }, el.type === "text" ? 500 : 150);
+    saveTimer = setTimeout(() => { awaitingSave = true; send({ op: "settings", patch: pending }); pending = {}; }, t.type === "text" ? 500 : 150);
   });
 
   const addTask = () => { const v = $("newTask").value.trim(); if (v) { send({ op: "add", text: v }); $("newTask").value = ""; } };
   $("add").onclick = addTask;
   $("newTask").onkeydown = (e) => { if (e.key === "Enter") addTask(); };
-  $("clearDone").onclick = () => send({ op: "clearDone" });
-  $("clearAll").onclick = () => confirm("Delete all tasks?") && send({ op: "clearAll" });
+  $("clearDone").onclick = () => removeLater(tasks.filter((t) => t.done && !hidden.has(t.id)).map((t) => t.id), "Finished tasks cleared.");
+  $("clearAll").onclick = async () => (await ask("Clear all", "Delete every task on the list?", "Clear all", true)) && removeLater(tasks.filter((t) => !hidden.has(t.id)).map((t) => t.id), "List cleared.");
   const sim = () => send({ op: "simulate", login: $("simUser").value, text: $("simText").value });
   $("sim").onclick = sim;
   $("simText").onkeydown = (e) => { if (e.key === "Enter") sim(); };
-  $("copyUrl").onclick = () => { navigator.clipboard.writeText(me.overlayUrl); $("copyUrl").textContent = "Copied"; setTimeout(() => ($("copyUrl").textContent = "Copy"), 1200); };
+
+  const copyLink = async (btn) => {
+    try { await navigator.clipboard.writeText(me.overlayUrl); }
+    catch { $("overlayUrl").classList.add("reveal"); getSelection().selectAllChildren($("overlayUrl")); if (btn) btn.textContent = "Press Ctrl+C"; return; }
+    store.set("grow:copied:" + me.id, "1"); renderSetup();
+    if (btn) { const old = btn.textContent; btn.textContent = "Copied"; setTimeout(() => (btn.textContent = old), 1400); }
+  };
+  $("copyUrl").onclick = () => copyLink($("copyUrl"));
+  $("setupCopy").onclick = () => copyLink(null);
   $("overlayUrl").onclick = () => $("overlayUrl").classList.toggle("reveal");
-  $("copyKey").onclick = () => navigator.clipboard.writeText($("welcomeKey").textContent);
-  $("dismiss").onclick = () => ($("welcome").hidden = true);
+  $("copyKey").onclick = async () => {
+    try { await navigator.clipboard.writeText($("welcomeKey").textContent); $("copyKey").textContent = "Copied"; }
+    catch { getSelection().selectAllChildren($("welcomeKey")); $("copyKey").textContent = "Press Ctrl+C"; }
+    keyStep();
+  };
+  $("downloadKey").onclick = () => {
+    const blob = new Blob([`grow dashboard key\n${$("welcomeKey").textContent}\n\nSign in at ${location.origin}/app\n`], { type: "text/plain" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "grow-key.txt"; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000); keyStep();
+  };
+  $("dismiss").onclick = () => { $("welcome").hidden = true; store.set("grow:keySaved", "1"); renderSetup(); };
   $("logout").onclick = async () => { await post("/api/logout"); location.reload(); };
-  $("rotOverlay").onclick = async () => { if (!confirm("Create a new overlay URL? You must update OBS.")) return; const r = await post("/api/rotate-overlay").then((r) => r.json()); setOverlay(r.overlayUrl); };
-  $("rotAdmin").onclick = async () => { if (!confirm("Create a new dashboard key?")) return; const r = await post("/api/rotate-admin").then((r) => r.json()); showKey(r.adminKey); scrollTo(0, 0); };
-  $("del").onclick = async () => { if (prompt("Type DELETE to remove this channel and all tasks") !== "DELETE") return; await post("/api/delete-channel"); location.href = "/"; };
+  $("rotOverlay").onclick = async () => {
+    if (!(await ask("Make a new overlay link?", "You'll have to paste it into OBS again.", "New overlay link"))) return;
+    const r = await post("/api/rotate-overlay").then((r) => r.json()); setOverlay(r.overlayUrl);
+    store.set("grow:copied:" + me.id, "0"); store.set("grow:setupDone:" + me.id, "0"); renderSetup();
+  };
+  $("rotAdmin").onclick = async () => {
+    if (!(await ask("Make a new dashboard key?", "Other devices get signed out.", "New dashboard key"))) return;
+    const r = await post("/api/rotate-admin").then((r) => r.json()); showKey(r.adminKey); scrollTo(0, 0);
+  };
+  $("del").onclick = async () => {
+    if (!(await ask("Delete overlay", "Type DELETE to remove this overlay and all its tasks.", "Delete overlay", true, "DELETE"))) return;
+    await post("/api/delete-channel"); location.href = "/";
+  };
   $("create").onclick = async () => {
-    $("create").disabled = true;
+    $("create").disabled = true; $("authErr").textContent = "";
     const r = await post("/api/channels", { name: $("newName").value });
-    if (!r.ok) { $("authErr").textContent = "Could not create channel."; $("create").disabled = false; return; }
+    if (!r.ok) {
+      $("authErr").textContent = r.status === 429 ? "Too many requests. Wait a minute and try again." : "Couldn't create the overlay. Try again in a moment.";
+      $("create").disabled = false; return;
+    }
     const d = await r.json();
     me = await fetch("/api/me").then((r) => r.json());
     showKey(d.adminKey);

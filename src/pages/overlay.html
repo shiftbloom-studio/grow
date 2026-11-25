@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>grow overlay</title>
-<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600&f[]=general-sans@400,500,600&display=swap">
+<link rel="stylesheet" href="/fonts.css">
 <style>
   :root { --accent:#7cf29c; --fs:18px; --w:420px; --mh:640px; --bg:rgba(14,16,24,.72); --fg:#f4f6fb; --muted:rgba(244,246,251,.55); --border:rgba(255,255,255,.12); --radius:18px; --font:"Inter","Segoe UI",system-ui,sans-serif; }
   html,body { margin:0; background:transparent; font-family:var(--font); color:var(--fg); overflow:hidden; }
@@ -33,9 +33,10 @@
   .empty { padding:1.1em 1em; color:var(--muted); font-size:.85em; }
   .empty code { color:var(--accent); }
   @keyframes pop { from { opacity:0; transform:translateY(.4em) scale(.98) } to { opacity:1; transform:none } }
-  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(140%); background:var(--bg); border:1px solid var(--border); border-radius:999px; padding:.55em 1.1em; font-size:var(--fs); box-shadow:0 10px 40px rgba(0,0,0,.35); backdrop-filter:blur(14px); transition:transform .45s cubic-bezier(.2,.9,.3,1.2); white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis; }
-  .toast.show { transform:translateX(-50%) translateY(0); }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(140%); background:var(--bg); border:1px solid var(--border); border-radius:999px; padding:.55em 1.1em; font-size:var(--fs); box-shadow:0 10px 40px rgba(0,0,0,.35); backdrop-filter:blur(14px); opacity:0; transition:transform .45s cubic-bezier(.2,.9,.3,1.2), opacity .3s; white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis; }
+  .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
   .toast b { color:var(--accent); }
+  .toast.warn { border-color:rgba(255,93,108,.6); }
   .status { position:fixed; top:6px; right:8px; width:8px; height:8px; border-radius:50%; background:#ff5d6c; opacity:0; transition:opacity .3s; }
   .status.off { opacity:1; }
   /* themes */
@@ -57,9 +58,15 @@
   body.theme-bloom .box { border-radius:50%; border-width:1.5px; }
   body.theme-bloom .task.done .box { box-shadow:inset 0 0 0 .2em #fff; }
   body.theme-bloom .task.done .box::after { display:none; }
-  body.theme-bloom .task { animation:pop .45s cubic-bezier(.22,1.1,.36,1); }
-  body.theme-bloom .toast { background:#1A1216; color:#fff; border-color:#1A1216; }
+  /* brandbook: things unfold, they never slide */
+  @keyframes unfold { from { opacity:0; transform:scale(.96) } to { opacity:1; transform:none } }
+  body.theme-bloom .task { animation:unfold .45s cubic-bezier(.22,1.1,.36,1); transform-origin:left center; }
+  body.theme-bloom .toast { background:#1A1216; color:#fff; border-color:#1A1216; transform:translateX(-50%) scale(.96); opacity:0; transition:transform .45s cubic-bezier(.22,1.1,.36,1), opacity .3s cubic-bezier(.4,0,.2,1); }
+  body.theme-bloom .toast.show { transform:translateX(-50%) scale(1); opacity:1; }
+  body.theme-bloom .toast.warn { background:#fff; color:#1A1216; border:1.5px solid #C81040; }
   body.theme-bloom .toast b { color:#FF8FAB !important; }
+  body.theme-bloom .toast.warn b { color:#C81040 !important; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
 </style>
 </head>
 <body>
@@ -77,6 +84,17 @@
   if (params.has("preview")) document.body.classList.add("preview");
   const $ = (id) => document.getElementById(id);
   let tasks = [], settings = null, ws = null, retry = 0, toastTimer = null, queue = [];
+  const TEXT = {
+    en: {
+      added: " added: ", done: " finished: ", undone: " reopened: ",
+      typeA: "Nothing on the list yet. Type ", typeB: " to add one.", empty: "Nothing on the list yet.",
+      revoked: "This overlay link was replaced. Copy the new one from your dashboard.",
+      limit: (n) => `you already have ${n} open tasks`, "list full": () => "the list is full",
+      "not allowed": () => "adding tasks is limited right now", "mods only": () => "that one is for mods",
+      "no task": () => "you have no task with that number",
+    },
+  };
+  const tr = () => TEXT.en;
 
   function applySettings() {
     const s = Object.assign({}, settings);
@@ -105,8 +123,8 @@
     list.replaceChildren();
     if (!visible.length) {
       const e = el("div", "empty");
-      if (s.twitchLogin && s.chatEnabled) { e.append("Type "); e.append(el("code", "", s.prefix + "task your goal")); e.append(" in chat to add a task"); }
-      else e.textContent = "No tasks yet";
+      if (s.twitchLogin && s.chatEnabled) { e.append(tr().typeA); e.append(el("code", "", s.prefix + "task")); e.append(tr().typeB); }
+      else e.textContent = tr().empty;
       list.append(e);
     } else if (s.groupByUser) {
       const groups = new Map();
@@ -161,19 +179,25 @@
     const t = $("toast");
     if (!ev) { toastTimer = null; return; }
     t.replaceChildren();
-    const who = el("b", "", ev.user); who.style.color = ev.color;
+    t.classList.toggle("warn", ev.kind === "rejected");
+    const who = el("b", "", ev.kind === "rejected" ? "@" + ev.user : ev.user); who.style.color = ev.kind === "rejected" ? "" : ev.color;
     t.append(who);
-    t.append(document.createTextNode(ev.kind === "done" ? " finished: " : ev.kind === "added" ? " added: " : " reopened: "));
-    t.append(document.createTextNode(ev.text));
+    if (ev.kind === "rejected") {
+      const fn = tr()[ev.reason];
+      t.append(document.createTextNode(": " + (fn ? fn(ev.detail) : ev.reason)));
+    } else {
+      t.append(document.createTextNode(tr()[ev.kind] || " "));
+      t.append(document.createTextNode(ev.text));
+    }
     t.classList.add("show");
     toastTimer = setTimeout(() => { t.classList.remove("show"); toastTimer = setTimeout(nextToast, 500); }, 3200);
   }
 
   let revoked = false;
-  function revoke() { revoked = true; tasks = []; $("list").replaceChildren(el("div", "empty", "This overlay link is no longer valid.")); $("count").textContent = ""; }
+  function revoke() { revoked = true; tasks = []; $("list").replaceChildren(el("div", "empty", tr().revoked)); $("count").textContent = ""; }
   function connect() {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    ws = new WebSocket(proto + "//" + location.host + "/ws/" + key);
+    ws = new WebSocket(proto + "//" + location.host + "/ws/" + key + (params.has("preview") ? "?preview=1" : ""));
     ws.onopen = () => { retry = 0; $("status").classList.remove("off"); };
     ws.onmessage = (e) => {
       const m = JSON.parse(e.data);
@@ -186,6 +210,7 @@
           document.querySelectorAll(".group").forEach((g) => { if (g.dataset.login && g.querySelector(".who").textContent === m.user) { g.classList.add("flash"); setTimeout(() => g.classList.remove("flash"), 1800); } });
         } else if (m.kind !== "undone" && params.get("toasts") !== "0") toast(m);
       }
+      else if (m.t === "rejected" && params.get("toasts") !== "0") toast(Object.assign({ kind: "rejected" }, m));
     };
     ws.onclose = (e) => {
       $("status").classList.add("off");

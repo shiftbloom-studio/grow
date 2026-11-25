@@ -9,6 +9,9 @@ import overlayHtml from "./pages/overlay.html";
 import brandCss from "./pages/brand.css";
 import bloomJs from "./pages/bloom.js.txt";
 import faviconSvg from "./pages/favicon.svg";
+import commandsHtml from "./pages/commands.html";
+import llmsTxt from "./pages/llms.txt";
+import { FONTS_CSS, fontResponse } from "./fonts";
 
 export { ChannelRoom };
 
@@ -31,8 +34,8 @@ async function sha256(s: string): Promise<string> {
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com",
-  "font-src https://cdn.fontshare.com https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self'",
   "img-src 'self' data:",
   "connect-src 'self'",
   "frame-src 'self'",
@@ -63,11 +66,24 @@ function html(body: string, extra: HeadersInit = {}) {
   });
 }
 
-function asset(body: string, type: string) {
+function asset(body: BodyInit, type: string, extra: HeadersInit = {}) {
   return new Response(body, {
-    headers: { "content-type": type, "cache-control": "public, max-age=3600", ...SECURITY_HEADERS },
+    headers: { "content-type": type, "cache-control": "public, max-age=3600", ...SECURITY_HEADERS, ...extra },
   });
 }
+
+const SITE = "https://grow.shiftbloom.studio";
+
+function robotsTxt(base: string) {
+  return `User-agent: *\nDisallow: /o/\nDisallow: /api/\nDisallow: /ws/\nDisallow: /auth/\n\nSitemap: ${base}/sitemap.xml\n`;
+}
+
+function sitemapXml(base: string) {
+  const urls = ["/", "/commands"].map((p) => `  <url><loc>${base}${p}</loc></url>`).join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+}
+
+const NOINDEX = { "x-robots-tag": "noindex, nofollow" };
 
 /** Per-IP limit for account creation and logins (Workers rate limiting binding). */
 async function limited(req: Request, env: Env): Promise<boolean> {
@@ -159,9 +175,9 @@ async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
 
   if (path === "/api/channels" && req.method === "POST") {
     if (!sameOrigin(req)) return json({ error: "bad origin" }, 403);
-    if (await limited(req, env)) return json({ error: "too many requests" }, 429);
+    if (await limited(req, env)) return json({ error: "Too many requests. Wait a minute and try again." }, 429);
     const body = (await req.json().catch(() => ({}))) as { name?: string };
-    const name = cleanText(body.name || "", 40) || "My channel";
+    const name = cleanText(body.name || "", 40) || "Today's tasks";
     const ch = await newChannel(env, name);
     const token = await createSession(env, ch.id);
     return json(
@@ -173,7 +189,7 @@ async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
 
   if (path === "/api/login" && req.method === "POST") {
     if (!sameOrigin(req)) return json({ error: "bad origin" }, 403);
-    if (await limited(req, env)) return json({ error: "too many requests" }, 429);
+    if (await limited(req, env)) return json({ error: "Too many requests. Wait a minute and try again." }, 429);
     const body = (await req.json().catch(() => ({}))) as { key?: string };
     const key = (body.key || "").trim();
     if (!/^grow_[A-Za-z0-9]{36}$/.test(key)) return json({ error: "invalid key" }, 401);
@@ -242,7 +258,7 @@ async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
 }
 
 async function twitchAuth(req: Request, env: Env, url: URL): Promise<Response> {
-  if (!env.TWITCH_CLIENT_ID || !env.TWITCH_CLIENT_SECRET) return new Response("Twitch login is not configured", { status: 404 });
+  if (!env.TWITCH_CLIENT_ID || !env.TWITCH_CLIENT_SECRET) return new Response("Twitch sign-in isn't set up on this server.", { status: 404 });
   const redirectUri = `${origin(req, env)}/auth/twitch/callback`;
   if (url.pathname === "/auth/twitch") {
     const state = randomId(24);
@@ -250,20 +266,20 @@ async function twitchAuth(req: Request, env: Env, url: URL): Promise<Response> {
     auth.search = new URLSearchParams({ client_id: env.TWITCH_CLIENT_ID, redirect_uri: redirectUri, response_type: "code", scope: "", state }).toString();
     return new Response(null, { status: 302, headers: { location: auth.toString(), "set-cookie": cookie("grow_oauth", state, 600) } });
   }
-  if (await limited(req, env)) return new Response("Too many requests", { status: 429 });
+  if (await limited(req, env)) return new Response("Too many requests. Wait a minute and try again.", { status: 429 });
   const state = url.searchParams.get("state");
   const code = url.searchParams.get("code");
-  if (!code || !state || state !== getCookie(req, "grow_oauth")) return new Response("Invalid OAuth state", { status: 400 });
+  if (!code || !state || state !== getCookie(req, "grow_oauth")) return new Response("The Twitch sign-in timed out. Start again.", { status: 400 });
   const tok = await fetch("https://id.twitch.tv/oauth2/token", {
     method: "POST",
     body: new URLSearchParams({ client_id: env.TWITCH_CLIENT_ID, client_secret: env.TWITCH_CLIENT_SECRET, code, grant_type: "authorization_code", redirect_uri: redirectUri }),
   });
-  if (!tok.ok) return new Response("Twitch token exchange failed", { status: 502 });
+  if (!tok.ok) return new Response("Twitch didn't accept the sign-in. Try again.", { status: 502 });
   const { access_token } = (await tok.json()) as { access_token: string };
   const usr = await fetch("https://api.twitch.tv/helix/users", { headers: { authorization: `Bearer ${access_token}`, "client-id": env.TWITCH_CLIENT_ID } });
   const { data } = (await usr.json()) as { data: { id: string; login: string; display_name: string }[] };
   const tw = data?.[0];
-  if (!tw) return new Response("Twitch user lookup failed", { status: 502 });
+  if (!tw) return new Response("Couldn't look up your Twitch account. Try again.", { status: 502 });
   // revoke: we only needed identity
   await fetch("https://id.twitch.tv/oauth2/revoke", { method: "POST", body: new URLSearchParams({ client_id: env.TWITCH_CLIENT_ID, token: access_token }) }).catch(() => {});
 
@@ -286,13 +302,26 @@ async function twitchAuth(req: Request, env: Env, url: URL): Promise<Response> {
 }
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     const path = url.pathname;
+    const base = (env.PUBLIC_URL || SITE).replace(/\/$/, "");
     try {
       if (path === "/") return html(landingHtml);
-      if (path === "/app") return html(appHtml);
+      if (path === "/commands") return html(commandsHtml);
+      if (path === "/app") return html(appHtml, NOINDEX);
       if (path === "/healthz") return json({ ok: true });
+      if (path === "/robots.txt") return asset(robotsTxt(base), "text/plain; charset=utf-8");
+      if (path === "/sitemap.xml") return asset(sitemapXml(base), "application/xml; charset=utf-8");
+      if (path === "/llms.txt") return asset(llmsTxt, "text/plain; charset=utf-8");
+      if (path === "/og.png") {
+        // rendered from scripts/og.html and stored in D1 (see scripts/README.md), so no binary lives in the bundle
+        const img = await env.DB.prepare("SELECT data, type FROM assets WHERE name = ?").bind("og.png").first<{ data: number[] | ArrayBuffer; type: string }>();
+        if (!img) return new Response("Not found", { status: 404, headers: NOINDEX });
+        return asset(new Uint8Array(img.data as ArrayBuffer), img.type, { "cache-control": "public, max-age=86400" });
+      }
+      if (path === "/fonts.css") return asset(FONTS_CSS, "text/css; charset=utf-8", { "cache-control": "public, max-age=86400" });
+      if (path.startsWith("/fonts/")) return await fontResponse(path.slice(7), ctx);
       if (path === "/assets/brand.css") return asset(brandCss, "text/css; charset=utf-8");
       if (path === "/assets/bloom.js") return asset(bloomJs, "text/javascript; charset=utf-8");
       if (path === "/assets/favicon.svg" || path === "/favicon.ico") return asset(faviconSvg, "image/svg+xml");
@@ -300,16 +329,17 @@ export default {
       if (path.startsWith("/auth/twitch")) return await twitchAuth(req, env, url);
 
       const overlay = /^\/o\/([A-Za-z0-9]{24})$/.exec(path);
-      if (overlay) return html(overlayHtml, { "x-robots-tag": "noindex" });
+      if (overlay) return html(overlayHtml, NOINDEX);
 
       const ws = /^\/ws\/([A-Za-z0-9]{24})$/.exec(path);
       if (ws) {
         if (req.headers.get("Upgrade") !== "websocket") return json({ error: "expected websocket" }, 426);
         const ch = await env.DB.prepare("SELECT id FROM channels WHERE overlay_key = ?").bind(ws[1]).first<{ id: string }>();
         if (!ch) return json({ error: "unknown overlay" }, 404);
-        return stub(env, ch.id).fetch("https://do/ws?role=overlay", req);
+        const preview = url.searchParams.get("preview") === "1" ? "&preview=1" : "";
+        return stub(env, ch.id).fetch(`https://do/ws?role=overlay${preview}`, req);
       }
-      return new Response("Not found", { status: 404 });
+      return new Response("Not found", { status: 404, headers: NOINDEX });
     } catch (err) {
       console.error(err);
       return json({ error: "internal error" }, 500);

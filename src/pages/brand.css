@@ -46,10 +46,15 @@ ul.seeds li::before { content: ""; position: absolute; left: 2px; top: .68em; wi
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes spin-rev { to { transform: rotate(-360deg); } }
 @keyframes unfold { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+@keyframes unfold-soft { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+:focus-visible { outline: 2px solid var(--root); outline-offset: 2px; }
+.nobr { white-space: nowrap; }
 [data-bloom] svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.bloom-live .bloom-root { animation: breathe 6s ease-in-out infinite; transform-origin: center; }
-.bloom-live .ring0 { animation: spin 240s linear infinite; transform-origin: center; }
-.bloom-live .ring1 { animation: spin-rev 180s linear infinite; transform-origin: center; }
-.bloom-live .ring2 { animation: spin 140s linear infinite; transform-origin: center; }
-.bloom-live .ring3 { animation: spin-rev 110s linear infinite; transform-origin: center; }
+/* rotate and breathe around each ring's own centre, not the SVG viewport corner */
+[data-bloom] .bloom-root, [data-bloom] .ring { transform-box: fill-box; transform-origin: center; }
+.bloom-live .bloom-root { animation: breathe 6s ease-in-out infinite; }
+.bloom-live .ring0 { animation: spin 240s linear infinite }
+.bloom-live .ring1 { animation: spin-rev 180s linear infinite }
+.bloom-live .ring2 { animation: spin 140s linear infinite }
+.bloom-live .ring3 { animation: spin-rev 110s linear infinite }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

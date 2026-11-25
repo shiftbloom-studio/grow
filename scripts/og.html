@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- Template for the 1200x630 social preview image. See scripts/README.md. -->
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600&display=swap">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #fff; color: #1A1216; font-family: "General Sans", sans-serif; }
+  .wrap { position: relative; display: grid; grid-template-columns: 1fr 440px; gap: 64px; align-items: center; height: 100%; padding: 0 84px; box-sizing: border-box; }
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 40px; }
+  .brand [data-bloom] { width: 52px; height: 52px; }
+  .wm { font: 600 46px/1 "Clash Display", sans-serif; letter-spacing: -.02em; }
+  .seed { color: #FF2E52; }
+  h1 { font: 600 76px/1 "Clash Display", sans-serif; letter-spacing: -.02em; margin: 0 0 26px; }
+  p { font-size: 25px; line-height: 1.45; color: rgba(26,18,22,.6); margin: 0; }
+  code { font-family: "JetBrains Mono", monospace; font-size: .86em; color: #1A1216; background: #FFE9EF; padding: 2px 8px; border-radius: 7px; }
+  .demo { background: #fff; border: 2px solid #1A1216; border-radius: 26px; padding: 26px 28px 22px; }
+  .h { display: flex; align-items: baseline; font: 600 30px "Clash Display", sans-serif; letter-spacing: -.02em; padding-bottom: 14px; }
+  .h b { margin-left: auto; font: 500 18px "JetBrains Mono", monospace; color: #C81040; }
+  .bar { height: 4px; background: rgba(26,18,22,.08); } .bar i { display: block; height: 100%; width: 50%; background: #FF2E52; }
+  .u { font: 500 13px/1 "JetBrains Mono", monospace; letter-spacing: .14em; text-transform: uppercase; margin: 20px 0 8px; color: rgba(26,18,22,.6); }
+  .t { display: flex; gap: 14px; align-items: center; padding: 5px 0; font-size: 21px; }
+  .b { width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(26,18,22,.4); box-sizing: border-box; flex: none; }
+  .d .b { background: #FF2E52; border-color: #FF2E52; box-shadow: inset 0 0 0 4px #fff; }
+  .d span { color: rgba(26,18,22,.4); text-decoration: line-through; text-decoration-color: #FF2E52; }
+  .url { position: absolute; left: 84px; bottom: 44px; font: 500 17px "JetBrains Mono", monospace; color: rgba(26,18,22,.6); }
+</style></head><body>
+<div class="wrap">
+  <div>
+    <div class="brand"><span data-bloom></span><span class="wm">grow<span class="seed">.</span></span></div>
+    <h1>Your chat has goals too<span class="seed">.</span></h1>
+    <p>A to&#8209;do list on stream that viewers fill with <code>!task</code> and tick off with <code>!done</code>.</p>
+  </div>
+  <div class="demo">
+    <div class="h"><span>Today's tasks</span><b>3/6</b></div>
+    <div class="bar"><i></i></div>
+    <div class="u">streamer</div>
+    <div class="t"><i class="b"></i><span>Finish thumbnail</span></div>
+    <div class="t d"><i class="b"></i><span>Edit vlog intro</span></div>
+    <div class="u">viewer_one</div>
+    <div class="t d"><i class="b"></i><span>Read chapter 4</span></div>
+    <div class="t"><i class="b"></i><span>Flashcards bio</span></div>
+    <div class="u">viewer_two</div>
+    <div class="t d"><i class="b"></i><span>30 min workout</span></div>
+    <div class="t"><i class="b"></i><span>Stretch at 17:00</span></div>
+  </div>
+  <div class="url">grow.shiftbloom.studio</div>
+</div>
+<script>/*BLOOM*/</script>
+</body></html>

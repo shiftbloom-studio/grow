@@ -1,0 +1,35 @@
+# grow.
+
+> grow is a free, open source OBS overlay that shows a stream's to-do list. Viewers add tasks in Twitch chat with !task and finish them with !done, and the list updates live in OBS. It was built for study and cowork streams.
+
+Hosted at https://grow.shiftbloom.studio. Source code: https://github.com/shiftbloom-studio/grow (AGPL-3.0-or-later). Made by shiftbloom studio, Hamburg.
+
+## How it works
+
+- A streamer makes an overlay at https://grow.shiftbloom.studio/app and gets two things: a dashboard key (their login, shown once) and an overlay link for an OBS Browser source.
+- grow reads Twitch chat anonymously, without a bot account, and only while the overlay or dashboard is open.
+- Every change reaches all open overlays and the dashboard over WebSockets within about a second.
+
+## Chat commands
+
+- `!task <text>` (also `!add`, `!todo`): add a task
+- `!done [n]` (also `!check`, `!finish`): finish your first open task, or your n-th task
+- `!undo [n]` (also `!uncheck`): reopen a task
+- `!edit [n] <text>`: change a task
+- `!remove [n]` (also `!delete`, `!rm`): delete a task
+- `!mytasks` (also `!tasks`): highlight your tasks on the overlay
+- `!cleardone`, `!clearall`, `!clearuser @name`: for the streamer and moderators
+
+Full reference with examples: https://grow.shiftbloom.studio/commands
+
+## Limits
+
+- Twitch only for now. YouTube and Kick chat are not supported.
+- Default limit of 3 open tasks per viewer and 150 tasks per list, both adjustable (1 to 20, 5 to 500).
+- Tasks are capped at 140 characters.
+- The overlay link is read-only. Anyone with the dashboard key can change the list and settings.
+- There is no public API. The dashboard talks to the server over a WebSocket that needs a session cookie.
+
+## Self-hosting
+
+grow runs on Cloudflare Workers with one Durable Object per channel and a D1 database. The README explains how to deploy your own copy: https://github.com/shiftbloom-studio/grow#self-hosting

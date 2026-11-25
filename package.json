@@ -29,7 +29,7 @@
   "type": "module",
   "author": "shiftbloom studio (https://shiftbloom.studio)",
   "engines": {
-    "node": ">=22"
+    "node": ">=26"
   },
   "keywords": [
     "obs",

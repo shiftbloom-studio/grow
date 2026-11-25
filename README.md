@@ -89,7 +89,7 @@ grow runs entirely on Cloudflare's developer platform (Workers, Durable Objects 
    ```bash
    npm run deploy
    ```
-5. **Optional: deploy from GitHub Actions.** Add the secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` and the repository variables `D1_DATABASE_ID` and `GROW_HOSTNAME`. CI fills them into `wrangler.jsonc` on pushes to `main`, so your ids never have to be committed.
+5. **Optional: deploy on every push with Workers Builds.** Connect the repository to the Worker in the Cloudflare dashboard (Settings > Build) and add the build variables `D1_DATABASE_ID` and `GROW_HOSTNAME`. The deploy command fills them into `wrangler.jsonc`, so your ids never have to be committed. See [Continuous deployment](#continuous-deployment).
 6. **Optional: Twitch login.** Create an app at [dev.twitch.tv](https://dev.twitch.tv/console/apps) with redirect URL `https://<your-domain>/auth/twitch/callback`, then:
    ```bash
    npx wrangler secret put TWITCH_CLIENT_ID
@@ -118,7 +118,14 @@ grow runs entirely on Cloudflare's developer platform (Workers, Durable Objects 
 
 ### Continuous deployment
 
-`.github/workflows/ci.yml` runs typecheck and tests on every push and pull request. On `main` it also applies migrations and deploys when the repository secrets `CLOUDFLARE_API_TOKEN` (permissions: Workers Scripts edit, D1 edit) and `CLOUDFLARE_ACCOUNT_ID` are set. Without them the deploy step is skipped.
+`.github/workflows/ci.yml` runs typecheck and tests on every push and pull request. Deploys run in [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/), so no API token is stored on GitHub. A working setup for `main`:
+
+- Build command: `npm ci && npm run typecheck && npm test`
+- Deploy command:
+  ```bash
+  sed -i "s/<your-d1-database-id>/$D1_DATABASE_ID/" wrangler.jsonc && sed -i "s|\"vars\": { \"PUBLIC_URL\": \"\" }|\"vars\": { \"PUBLIC_URL\": \"https://$GROW_HOSTNAME\" }, \"routes\": [{ \"pattern\": \"$GROW_HOSTNAME\", \"custom_domain\": true }]|" wrangler.jsonc && npx wrangler d1 migrations apply grow-cloud --remote && npx wrangler deploy
+  ```
+- Build variables: `D1_DATABASE_ID`, `GROW_HOSTNAME`, and `NODE_VERSION=26`
 
 ## Contributing
 

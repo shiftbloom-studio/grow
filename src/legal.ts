@@ -157,9 +157,9 @@ export function legalPage(path: LegalPath, env: Env, base: string): string {
 <style>
   .wrap { max-width: 760px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
   nav { display: flex; align-items: center; gap: 24px; padding: 28px 0; }
-  nav .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+  nav .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; }
   nav .brand [data-bloom] { width: 30px; height: 30px; }
-  nav .wordmark { font-size: 28px; }
+  nav .wordmark { font-size: 22.4px; }
   nav .sp { flex: 1; }
   h1 { font-size: clamp(36px, 5vw, 56px); margin: 24px 0 14px; }
   .meta { display: flex; gap: 18px; flex-wrap: wrap; font: 400 13px/1.6 var(--mono); color: var(--ink-60); margin-bottom: 40px; }

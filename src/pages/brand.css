@@ -20,7 +20,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: -.02
 .mono { font-family: var(--mono); }
 .seed { color: var(--bloom); }
 .wordmark { font-family: var(--display); font-weight: 600; letter-spacing: -.02em; color: var(--ink); text-decoration: none; display: inline-flex; align-items: baseline; }
-.wordmark small { margin-left: .28em; font-weight: 400; color: var(--ink-60); font-size: .62em; letter-spacing: 0; }
+.wordmark small { margin-left: .28em; font-weight: 400; color: var(--ink-60); font-size: 1em; }
 .wordmark:hover { color: var(--ink); }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5em; font: 600 15px/1 var(--sans); padding: 13px 20px; border-radius: 999px; border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink); cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .24s var(--ease-settle), color .24s var(--ease-settle), border-color .24s var(--ease-settle), transform .24s var(--ease-bloom); }
 .btn:hover { background: var(--ink); color: var(--paper); }

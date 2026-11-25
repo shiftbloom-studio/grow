@@ -1,35 +1,31 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 shiftbloom studio and contributors
-// The Bloom: drawn from the brandbook v2 construction spec (rings 10/10/8/6 + seed, 36° symmetry).
+// The Bloom: the exact mark from shiftbloom.studio (brand book v2, rings 10/10/8/6 + seed, 36° symmetry).
+// Gradient from 32px up; set data-solid="#FF2E52" for the solid variant below 32px.
 (() => {
   const RINGS = [
-    { d: 200, n: 10, from: "#D8163F", to: "#FF2E52" },
-    { d: 148, n: 10, from: "#FF2E52", to: "#FF7E9E" },
-    { d: 100, n: 8, from: "#FF7E9E", to: "#FFC2D3" },
-    { d: 54, n: 6, from: "#FFB4CA", to: "#FFDCE7" },
+    { r: 100, n: 10, w: 32, l: 90, from: "#D8163F", to: "#FF2E52", rot: 0 },
+    { r: 74, n: 10, w: 25.16, l: 66.6, from: "#FF2E52", to: "#FF7E9E", rot: 18 },
+    { r: 50, n: 8, w: 19, l: 45, from: "#FF7E9E", to: "#FFC2D3", rot: 40.5 },
+    { r: 27, n: 6, w: 12.96, l: 24.3, from: "#FFB4CA", to: "#FFDCE7", rot: 70.5 },
   ];
   let uid = 0;
-  function petal(r, n) {
-    const w = r * Math.tan(Math.PI / n) * 0.95;
-    const f = (x) => x.toFixed(2);
-    return `M0 0C${f(w)} ${f(-r * 0.3)} ${f(w * 0.55)} ${f(-r * 0.78)} 0 ${f(-r)}C${f(-w * 0.55)} ${f(-r * 0.78)} ${f(-w)} ${f(-r * 0.3)} 0 0Z`;
-  }
+  const f = (x) => +x.toFixed(2);
+  const petal = (w, l) => `M 0,0 C ${w},0 ${w},${-f(0.55 * l)} 0,${-l} C ${-w},${-f(0.55 * l)} ${-w},0 0,0 Z`;
   function draw(el) {
-    const id = "b" + uid++;
+    const id = "sb-bloom-" + uid++;
     const solid = el.dataset.solid;
     let defs = "", body = "";
     RINGS.forEach((ring, i) => {
-      const r = ring.d / 2;
-      const gid = `${id}g${i}`;
-      defs += `<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${-r}"><stop offset="0" stop-color="${ring.from}"/><stop offset="1" stop-color="${ring.to}"/></linearGradient>`;
-      const p = petal(r, ring.n);
-      const off = i % 2 ? 180 / ring.n : 0;
+      const gid = `${id}-${ring.r}`;
+      if (!solid) defs += `<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${-ring.l}"><stop offset="0%" stop-color="${ring.from}"/><stop offset="100%" stop-color="${ring.to}"/></linearGradient>`;
+      const p = petal(ring.w, ring.l);
       let petals = "";
-      for (let k = 0; k < ring.n; k++) petals += `<path d="${p}" transform="rotate(${off + (360 / ring.n) * k})" fill="${solid || `url(#${gid})`}"/>`;
+      for (let k = 0; k < ring.n; k++) petals += `<path d="${p}" fill="${solid || `url(#${gid})`}" transform="translate(100 100) rotate(${f(ring.rot + (360 / ring.n) * k)}) translate(0 ${-f(ring.r - ring.l)})"/>`;
       body += `<g class="ring ring${i}">${petals}</g>`;
     });
-    body += `<circle class="seed" r="7" fill="${solid || "#FF2E52"}"/>`;
-    el.innerHTML = `<svg viewBox="-104 -104 208 208" role="img" aria-label="shiftbloom bloom"><defs>${defs}</defs><g class="bloom-root">${body}</g></svg>`;
+    body += `<circle class="seed" cx="100" cy="100" r="7" fill="${solid || "#FF2E52"}"/>`;
+    el.innerHTML = `<svg viewBox="0 0 200 200" role="img" aria-label="shiftbloom bloom">${defs ? `<defs>${defs}</defs>` : ""}<g class="bloom-root">${body}</g></svg>`;
   }
   window.drawBlooms = () => document.querySelectorAll("[data-bloom]").forEach(draw);
   if (document.readyState !== "loading") window.drawBlooms();

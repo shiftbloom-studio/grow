@@ -75,8 +75,20 @@ function asset(body: BodyInit, type: string, extra: HeadersInit = {}) {
 
 const SITE = "https://grow.shiftbloom.studio";
 
+// Search and AI answer engines are welcome; AI training crawlers are not
+// (they are also blocked by a WAF rule at the edge).
+const AI_TRAINING_CRAWLERS = [
+  "GPTBot", "ClaudeBot", "anthropic-ai", "CCBot", "Google-Extended", "Applebot-Extended",
+  "Bytespider", "Amazonbot", "meta-externalagent", "cohere-ai", "MistralAI-Training", "Diffbot",
+];
+
 function robotsTxt(base: string) {
-  return `User-agent: *\nDisallow: /o/\nDisallow: /api/\nDisallow: /ws/\nDisallow: /auth/\n\nSitemap: ${base}/sitemap.xml\n`;
+  return (
+    "User-agent: *\nContent-Signal: search=yes, ai-input=yes, ai-train=no\n" +
+    "Disallow: /o/\nDisallow: /api/\nDisallow: /ws/\nDisallow: /auth/\n\n" +
+    AI_TRAINING_CRAWLERS.map((bot) => `User-agent: ${bot}`).join("\n") +
+    `\nDisallow: /\n\nSitemap: ${base}/sitemap.xml\n`
+  );
 }
 
 function sitemapXml(base: string) {

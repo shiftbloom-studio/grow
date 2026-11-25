@@ -187,6 +187,15 @@
       <div class="muted mono" id="simResult" style="margin-top:10px;font-size:13px" aria-live="polite"></div>
       <ul class="cmds seeds" id="cmdHelp"></ul>
     </div>
+    <div class="panel">
+      <div class="label">security</div><h2>Keys and links<span class="seed">.</span></h2>
+      <div class="row" style="flex-wrap:wrap">
+        <button class="btn ghost sm" id="rotOverlay">New overlay link</button>
+        <button class="btn ghost sm" id="rotAdmin">New dashboard key</button>
+        <button class="btn danger sm" id="del">Delete overlay</button>
+      </div>
+      <p class="muted">A new overlay link breaks the old one right away, so update OBS afterwards. A new dashboard key signs out every other device.</p>
+    </div>
   </div>
   <div class="stack">
     <div class="panel">
@@ -233,15 +242,6 @@
           </div>
         </details>
       </div>
-    </div>
-    <div class="panel">
-      <div class="label">security</div><h2>Keys and links<span class="seed">.</span></h2>
-      <div class="row" style="flex-wrap:wrap">
-        <button class="btn ghost sm" id="rotOverlay">New overlay link</button>
-        <button class="btn ghost sm" id="rotAdmin">New dashboard key</button>
-        <button class="btn danger sm" id="del">Delete overlay</button>
-      </div>
-      <p class="muted">A new overlay link breaks the old one right away, so update OBS afterwards. A new dashboard key signs out every other device.</p>
     </div>
   </div>
 </main>

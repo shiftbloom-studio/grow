@@ -25,8 +25,11 @@ function operator(env: Env): Operator | null {
   return op.name && op.street && op.city && op.email ? op : null;
 }
 
-function address(op: Operator) {
-  return `<address>${[op.name, op.business, op.street, op.city, op.country].filter(Boolean).map(esc).join("<br>")}</address>`;
+const COUNTRY_DE: Record<string, string> = { Germany: "Deutschland", Austria: "Österreich", Switzerland: "Schweiz" };
+
+function address(op: Operator, lang: "en" | "de") {
+  const country = lang === "de" ? COUNTRY_DE[op.country] ?? op.country : op.country;
+  return `<address>${[op.name, op.business, op.street, op.city, country].filter(Boolean).map(esc).join("<br>")}</address>`;
 }
 const mail = (op: Operator) => `<a href="mailto:${esc(op.email)}">${esc(op.email)}</a>`;
 const tel = (op: Operator) => `<a href="tel:${esc(op.phone.replace(/[^\d+]/g, ""))}">${esc(op.phone)}</a>`;
@@ -41,7 +44,7 @@ function imprint(lang: "en" | "de", op: Operator | null): string {
   if (!op) return MISSING[lang];
   return `
 <p>${de ? "Angaben gemäß § 5 DDG:" : "Information pursuant to § 5 DDG:"}</p>
-${address(op)}
+${address(op, lang)}
 <p>${de ? "E-Mail" : "Email"}: ${mail(op)}${op.phone ? `<br>${de ? "Telefon" : "Phone"}: ${tel(op)}` : ""}</p>
 ${op.vatId ? `<p>${de ? "Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG" : "VAT ID pursuant to § 27a UStG"}: ${esc(op.vatId)}</p>` : ""}
 <h2>${de ? "Verbraucherstreitbeilegung" : "Consumer dispute resolution"}</h2>
@@ -59,7 +62,7 @@ function privacyEn(op: Operator | null, host: string, twitchLogin: boolean): str
 <p>grow sets no tracking cookies and uses no analytics or advertising. It doesn't analyze visitors or their behavior and makes no automated decisions about you. This policy covers the personal data grow processes when you use ${esc(host)}: your IP address, the overlay you create, and the chat commands of the channels that use it.</p>
 
 <h2>Controller</h2>
-${op ? `${address(op)}<p>Email: ${mail(op)}</p>` : MISSING.en}
+${op ? `${address(op, "en")}<p>Email: ${mail(op)}</p>` : MISSING.en}
 
 <h2>Hosting</h2>
 <p>Cloudflare, Inc., 101 Townsend St., San Francisco, CA 94107, USA, delivers all of grow's pages and files on our behalf and runs its server code (a Cloudflare Worker), its database (Cloudflare D1) and the rooms that keep each overlay's list (Durable Objects). To do so, Cloudflare processes your IP address, the address of the page you request, the time, and details your browser sends, such as its user agent and the page you came from. You don't have to provide this data, but without it the site can't be shown to you.</p>
@@ -95,7 +98,7 @@ function privacyDe(op: Operator | null, host: string, twitchLogin: boolean): str
 <p>grow setzt keine Tracking-Cookies und nutzt keine Analyse- oder Werbedienste. Es wertet weder Besucher noch ihr Verhalten aus und trifft keine automatisierten Entscheidungen über dich. Diese Erklärung beschreibt, welche personenbezogenen Daten grow verarbeitet, wenn du ${esc(host)} nutzt: deine IP-Adresse, das Overlay, das du anlegst, und die Chat-Befehle der Kanäle, die es verwenden.</p>
 
 <h2>Verantwortlicher</h2>
-${op ? `${address(op)}<p>E-Mail: ${mail(op)}</p>` : MISSING.de}
+${op ? `${address(op, "de")}<p>E-Mail: ${mail(op)}</p>` : MISSING.de}
 
 <h2>Hosting</h2>
 <p>Cloudflare, Inc., 101 Townsend St., San Francisco, CA 94107, USA, liefert in unserem Auftrag alle Seiten und Dateien von grow aus und betreibt seinen Servercode (einen Cloudflare Worker), seine Datenbank (Cloudflare D1) und die Räume, die die Liste jedes Overlays halten (Durable Objects). Dazu verarbeitet Cloudflare deine IP-Adresse, die Adresse der aufgerufenen Seite, den Zeitpunkt und Angaben, die dein Browser mitsendet, etwa den User-Agent und die Seite, von der du kommst. Du musst diese Daten nicht bereitstellen, ohne sie kann die Website aber nicht angezeigt werden.</p>

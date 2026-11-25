@@ -20,6 +20,7 @@ const google = (family: string, w: number) => `https://fonts.googleapis.com/css2
 
 /** Only the cuts the pages actually use. */
 export const FONT_CUTS: Record<string, FontCut> = {
+  "clash-display-400": { family: "Clash Display", weight: 400, css: fontshare("clash-display", 400) },
   "clash-display-600": { family: "Clash Display", weight: 600, css: fontshare("clash-display", 600) },
   "general-sans-400": { family: "General Sans", weight: 400, css: fontshare("general-sans", 400) },
   "general-sans-500": { family: "General Sans", weight: 500, css: fontshare("general-sans", 500) },

@@ -1,0 +1,39 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Deploy (skipped when no API token is configured)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+          GROW_HOSTNAME: ${{ vars.GROW_HOSTNAME }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then echo "No CLOUDFLARE_API_TOKEN secret, skipping deploy"; exit 0; fi
+          # Deployment-specific values live in repository variables, not in the repo.
+          sed -i "s/<your-d1-database-id>/${D1_DATABASE_ID}/" wrangler.jsonc
+          if [ -n "$GROW_HOSTNAME" ]; then
+            sed -i "s|\"vars\": { \"PUBLIC_URL\": \"\" }|\"vars\": { \"PUBLIC_URL\": \"https://${GROW_HOSTNAME}\" }, \"routes\": [{ \"pattern\": \"${GROW_HOSTNAME}\", \"custom_domain\": true }]|" wrangler.jsonc
+          fi
+          npx wrangler d1 migrations apply grow-cloud --remote
+          npx wrangler deploy

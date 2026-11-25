@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>grow. live task overlays for streams · shiftbloom studio.</title>
+<meta name="description" content="grow is a free, open source task overlay for OBS. Viewers add goals with !task, tick them off with !done, and the list grows live on stream.">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://api.fontshare.com"><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=general-sans@400,500,600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="/assets/brand.css">
+<style>
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); position: relative; }
+  nav { display: flex; align-items: center; gap: 28px; padding: 28px 0; }
+  nav .wordmark { font-size: 28px; }
+  nav .sp { flex: 1; }
+  nav a.l { color: var(--ink); text-decoration: none; font-weight: 500; }
+  nav a.l:hover { color: var(--root); }
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(24px, 5vw, 72px); align-items: center; min-height: min(78vh, 760px); padding: 24px 0 72px; }
+  @media (max-width: 880px) { .hero { grid-template-columns: 1fr; min-height: 0; } .hero .flower { order: -1; max-width: 340px; margin: 0 auto; } }
+  .hero h1 { font-size: clamp(44px, 6.4vw, 92px); line-height: .98; margin: 18px 0 26px; }
+  .hero p { font-size: 19px; color: var(--ink-60); max-width: 30em; margin: 0 0 36px; }
+  .hero p code { font-family: var(--mono); font-size: .88em; color: var(--ink); background: var(--blush); padding: 2px 7px; border-radius: 6px; }
+  .cta-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .cta-row .note { font: 400 12px/1.4 var(--mono); color: var(--ink-60); }
+  .flower { position: relative; aspect-ratio: 1; width: 100%; animation: unfold .6s var(--ease-bloom) both; }
+  .flower [data-bloom] { position: absolute; inset: 6%; }
+  .margin-v { position: absolute; right: -8px; top: 120px; writing-mode: vertical-rl; font: 500 11px/1 var(--mono); letter-spacing: .3em; text-transform: uppercase; color: var(--ink-40); }
+  @media (max-width: 1100px) { .margin-v { display: none; } }
+  section.block { padding: 88px 0; border-top: 1.5px solid var(--ink); }
+  .block-head { display: grid; grid-template-columns: 220px 1fr; gap: 32px; margin-bottom: 48px; }
+  @media (max-width: 760px) { .block-head { grid-template-columns: 1fr; gap: 12px; } }
+  .block-head h2 { font-size: clamp(32px, 4vw, 52px); }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+  .step { background: var(--paper-warm); border-radius: 24px; padding: 28px; }
+  .step .num { font: 500 13px/1 var(--mono); color: var(--root); }
+  .step h3 { font-size: 26px; margin: 18px 0 10px; }
+  .step p { margin: 0; color: var(--ink-60); }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+  @media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+  table.cmds { width: 100%; border-collapse: collapse; font-size: 15px; }
+  table.cmds td { padding: 12px 0; border-bottom: 1px solid var(--ink-12); vertical-align: top; }
+  table.cmds td:first-child { font-family: var(--mono); font-size: 14px; white-space: nowrap; padding-right: 24px; }
+  table.cmds td:last-child { color: var(--ink-60); }
+  .demo { background: var(--paper); border: 1.5px solid var(--ink); border-radius: 24px; padding: 22px 24px; max-width: 440px; }
+  .demo .h { display: flex; align-items: baseline; font-family: var(--display); font-weight: 600; font-size: 22px; padding-bottom: 12px; border-bottom: 1.5px solid var(--ink); }
+  .demo .h span:last-child { margin-left: auto; font: 500 14px var(--mono); color: var(--root); }
+  .demo .u { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; margin: 18px 0 8px; color: var(--ink-60); }
+  .demo .t { display: flex; gap: 12px; align-items: center; padding: 4px 0; }
+  .demo .b { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--ink-40); flex: none; }
+  .demo .d .b { background: var(--bloom); border-color: var(--bloom); box-shadow: inset 0 0 0 4px var(--paper); }
+  .demo .d span:last-child { color: var(--ink-40); text-decoration: line-through; text-decoration-color: var(--bloom); }
+  .feats { margin: 0; display: grid; gap: 14px; font-size: 17px; }
+  .feats b { font-weight: 600; }
+  footer { border-top: 1.5px solid var(--ink); padding: 32px 0 48px; display: flex; gap: 20px; flex-wrap: wrap; align-items: baseline; }
+  footer .wordmark { font-size: 22px; }
+  footer .meta { font: 400 12px/1.6 var(--mono); color: var(--ink-60); margin-left: auto; text-align: right; }
+  footer .meta a { color: var(--ink-60); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="wordmark" href="/">grow<span class="seed">.</span></a>
+    <div class="sp"></div>
+    <a class="l" href="https://github.com/shiftbloom-studio/grow">GitHub</a>
+    <a class="btn ghost sm" href="/app">Dashboard</a>
+  </nav>
+  <span class="margin-v">open source · agpl-3.0+ · made in hamburg</span>
+
+  <section class="hero">
+    <div>
+      <div class="label">OBS overlay · Twitch chat · free</div>
+      <h1>Your stream's to-do list, growing live<span class="seed">.</span></h1>
+      <p>Viewers add goals with <code>!task</code> and tick them off with <code>!done</code>. You paste one link into OBS and watch the list fill up while you work together. Made for study, cowork and focus streams.</p>
+      <div class="cta-row">
+        <a class="btn primary" href="/app">Start your overlay</a>
+        <span class="note">no bot account · no install</span>
+      </div>
+    </div>
+    <div class="flower bloom-live"><div data-bloom></div>
+      <svg class="sprinkle" style="left:2%;top:10%;width:18px;animation-delay:0s" viewBox="0 0 24 24"><path d="M12 0l2.6 9.4L24 12l-9.4 2.6L12 24l-2.6-9.4L0 12l9.4-2.6z" fill="#FF2E52"/></svg>
+      <svg class="sprinkle" style="right:4%;top:4%;width:12px;animation-delay:1.3s" viewBox="0 0 12 12"><path d="M5 0h2v5h5v2H7v5H5V7H0V5h5z" fill="#1A1216"/></svg>
+      <svg class="sprinkle" style="right:0;bottom:16%;width:8px;animation-delay:2.6s" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#FF2E52"/></svg>
+      <svg class="sprinkle" style="left:8%;bottom:4%;width:10px;animation-delay:3.7s" viewBox="0 0 12 12"><path d="M5 0h2v5h5v2H7v5H5V7H0V5h5z" fill="#FF2E52"/></svg>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head"><div class="label">01 · how it works</div><h2>Three steps, one link<span class="seed">.</span></h2></div>
+    <div class="steps">
+      <div class="step"><div class="num">01</div><h3>Create</h3><p>Open the dashboard, name your overlay and keep the key you get. That's your login.</p></div>
+      <div class="step"><div class="num">02</div><h3>Connect</h3><p>Type your Twitch channel. grow listens to chat while your overlay is open, nothing else.</p></div>
+      <div class="step"><div class="num">03</div><h3>Stream</h3><p>Add a Browser source in OBS, paste the link. Tasks appear the moment chat types them.</p></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head"><div class="label">02 · in chat</div><h2>Chat runs the list<span class="seed">.</span></h2></div>
+    <div class="split">
+      <table class="cmds">
+        <tr><td>!task read chapter 4</td><td>add a task (also !add, !todo)</td></tr>
+        <tr><td>!done 2</td><td>finish your first or n-th task</td></tr>
+        <tr><td>!edit 1 new text</td><td>change a task</td></tr>
+        <tr><td>!undo · !remove</td><td>reopen or delete</td></tr>
+        <tr><td>!mytasks</td><td>highlight your tasks on stream</td></tr>
+        <tr><td>!cleardone · !clearuser @name</td><td>for mods and you</td></tr>
+      </table>
+      <div class="demo" aria-hidden="true">
+        <div class="h"><span>Today's tasks</span><span>3/6</span></div>
+        <div class="u">streamer</div>
+        <div class="t d"><i class="b"></i><span>Finish thumbnail</span></div>
+        <div class="t"><i class="b"></i><span>Edit vlog intro</span></div>
+        <div class="u">viewer_one</div>
+        <div class="t d"><i class="b"></i><span>Read chapter 4</span></div>
+        <div class="t"><i class="b"></i><span>Flashcards bio</span></div>
+        <div class="u">viewer_two</div>
+        <div class="t d"><i class="b"></i><span>30 min workout</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head"><div class="label">03 · details</div><h2>Small tool, sharp edges<span class="seed">.</span></h2></div>
+    <ul class="seeds feats">
+      <li><b>Live everywhere.</b> Every change reaches every overlay and your dashboard instantly.</li>
+      <li><b>Yours to style.</b> Five themes, your accent color, size, auto-scroll and per-viewer limits.</li>
+      <li><b>Safe by default.</b> The overlay link can only read. Rotate it any time and the old one stops working.</li>
+      <li><b>Open source.</b> Read it, fork it, host it yourself. AGPL-3.0-or-later.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <a class="wordmark" href="https://shiftbloom.studio">shiftbloom <small>studio</small><span class="seed">.</span></a>
+    <div class="meta">grow · <a href="https://github.com/shiftbloom-studio/grow">github.com/shiftbloom-studio/grow</a><br>hamburg · 53.55°N 9.99°E · every commit helps something bloom.</div>
+  </footer>
+</div>
+<script src="/assets/bloom.js"></script>
+</body>
+</html>

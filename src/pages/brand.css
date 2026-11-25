@@ -1,0 +1,55 @@
+/* shiftbloom studio brand tokens, brandbook v2 (white mode only) */
+:root {
+  --bloom: #FF2E52; --root: #C81040; --pink: #FF8FAB; --blush: #FFE9EF;
+  --ink: #1A1216; --ink-60: rgba(26,18,22,.6); --ink-40: rgba(26,18,22,.4); --ink-12: rgba(26,18,22,.12); --ink-06: rgba(26,18,22,.06);
+  --paper: #FFFFFF; --paper-warm: #FAF6F4;
+  --display: "Clash Display", "General Sans", system-ui, sans-serif;
+  --sans: "General Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --ease-bloom: cubic-bezier(.22, 1.1, .36, 1);
+  --ease-settle: cubic-bezier(.4, 0, .2, 1);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.65 var(--sans); -webkit-font-smoothing: antialiased; }
+::selection { background: var(--blush); color: var(--ink); }
+a { color: var(--root); text-underline-offset: 3px; }
+a:hover { color: var(--bloom); }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: -.02em; line-height: 1.02; margin: 0; }
+.label { font: 500 11px/1.4 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-60); }
+.mono { font-family: var(--mono); }
+.seed { color: var(--bloom); }
+.wordmark { font-family: var(--display); font-weight: 600; letter-spacing: -.02em; color: var(--ink); text-decoration: none; display: inline-flex; align-items: baseline; }
+.wordmark small { margin-left: .28em; font-weight: 400; color: var(--ink-60); font-size: .62em; letter-spacing: 0; }
+.wordmark:hover { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .5em; font: 600 15px/1 var(--sans); padding: 13px 20px; border-radius: 999px; border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink); cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .24s var(--ease-settle), color .24s var(--ease-settle), border-color .24s var(--ease-settle), transform .24s var(--ease-bloom); }
+.btn:hover { background: var(--ink); color: var(--paper); }
+.btn:active { transform: scale(.97); }
+.btn.primary { background: var(--bloom); border-color: var(--bloom); color: var(--paper); }
+.btn.primary:hover { background: var(--root); border-color: var(--root); color: var(--paper); }
+.btn.ghost { border-color: var(--ink-12); }
+.btn.ghost:hover { border-color: var(--ink); background: var(--paper); color: var(--ink); }
+.btn.danger { border-color: var(--ink-12); color: var(--root); }
+.btn.danger:hover { background: var(--root); border-color: var(--root); color: var(--paper); }
+.btn.sm { padding: 8px 14px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: default; }
+input[type=text], input[type=number], select { font: 400 15px/1.4 var(--sans); color: var(--ink); background: var(--paper); border: 1.5px solid var(--ink-12); border-radius: 12px; padding: 11px 14px; width: 100%; outline: none; transition: border-color .2s var(--ease-settle); }
+input[type=text]:focus, input[type=number]:focus, select:focus { border-color: var(--ink); }
+input[type=number] { font-family: var(--mono); }
+input[type=checkbox] { accent-color: var(--bloom); width: 18px; height: 18px; }
+ul.seeds { list-style: none; padding: 0; }
+ul.seeds li { position: relative; padding-left: 20px; }
+ul.seeds li::before { content: ""; position: absolute; left: 2px; top: .68em; width: 7px; height: 7px; border-radius: 50%; background: var(--bloom); }
+.sprinkle { position: absolute; pointer-events: none; animation: twinkle 4.5s var(--ease-settle) infinite; }
+@keyframes twinkle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.8); } }
+@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin-rev { to { transform: rotate(-360deg); } }
+@keyframes unfold { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+[data-bloom] svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.bloom-live .bloom-root { animation: breathe 6s ease-in-out infinite; transform-origin: center; }
+.bloom-live .ring0 { animation: spin 240s linear infinite; transform-origin: center; }
+.bloom-live .ring1 { animation: spin-rev 180s linear infinite; transform-origin: center; }
+.bloom-live .ring2 { animation: spin 140s linear infinite; transform-origin: center; }
+.bloom-live .ring3 { animation: spin-rev 110s linear infinite; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

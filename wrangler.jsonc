@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "grow-cloud",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+  // Serve on your own hostname (a zone in your Cloudflare account), e.g.
+  // "routes": [{ "pattern": "grow.example.com", "custom_domain": true }],
+  // Without a custom domain, set "workers_dev": true instead.
+  "rules": [{ "type": "Text", "globs": ["**/*.html", "**/*.css", "**/*.svg", "**/*.txt"], "fallthrough": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+  "d1_databases": [{ "binding": "DB", "database_name": "grow-cloud", "database_id": "<your-d1-database-id>", "migrations_dir": "migrations" }],
+  "durable_objects": { "bindings": [{ "name": "CHANNEL", "class_name": "ChannelRoom" }] },
+  "ratelimits": [{ "name": "RL_AUTH", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ChannelRoom"] }],
+  // Origin used in overlay links. Leave empty to use the request origin.
+  "vars": { "PUBLIC_URL": "" }
+}

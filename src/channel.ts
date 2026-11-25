@@ -9,7 +9,9 @@ interface Attachment { role: SocketRole; preview?: boolean }
 
 /** Why a chat command did nothing. Shown on the overlay (if enabled) and in the dashboard log. */
 export type Rejection = "limit" | "list full" | "not allowed" | "mods only" | "no task" | "cooldown";
-export interface LogEntry { at: number; user: string; text: string; result: string }
+export interface LogEntry { at: number; user: string; text: string; result: string; detail?: number | string }
+
+const VERBS: Record<string, string> = { add: "added", done: "finished", undo: "reopened", edit: "edited", remove: "removed", mine: "highlighted", clearDone: "cleared finished", clearAll: "cleared the list", clearUser: "cleared a viewer" };
 
 const STREAMER: ChatUser = { userId: "streamer", login: "streamer", displayName: "Streamer", color: "", roles: ["everyone", "broadcaster"] };
 const PALETTE = ["#ff7a90", "#ffb86b", "#ffe66d", "#7cf29c", "#6bd5ff", "#9d8cff", "#ff8cf0", "#8cffe4"];
@@ -54,6 +56,7 @@ export class ChannelRoom extends DurableObject<Env> {
   private cooldown = new Map<string, number>();
   private rejectNotice = new Map<string, number>();
   private log: LogEntry[] = [];
+  private lastVerb = "done";
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -114,26 +117,34 @@ export class ChannelRoom extends DurableObject<Env> {
   handleChat(msg: { id: string; user: ChatUser; text: string }): string | null {
     const result = this.runChat(msg);
     if (result === null) return null;
-    this.record(msg.user, msg.text, result);
-    if (result !== "ok") this.reject(msg.user, result as Rejection);
+    const detail = result === "ok" ? undefined : this.rejectDetail(result as Rejection, msg.text);
+    this.record(msg.user, msg.text, result === "ok" ? this.lastVerb : result, detail);
+    if (result !== "ok") this.reject(msg.user, result as Rejection, detail);
     return result;
   }
 
-  private record(user: ChatUser, text: string, result: string) {
-    const entry: LogEntry = { at: Date.now(), user: user.displayName, text: cleanText(text, 160), result };
+  private rejectDetail(reason: Rejection, text: string): number | string | undefined {
+    if (reason === "limit") return this.settings.maxPerUser;
+    if (reason === "list full") return this.settings.maxTasks;
+    if (reason === "not allowed") return this.settings.minRole;
+    if (reason === "no task") { const c = parseCommand(text, this.settings); return c && "index" in c ? c.index ?? undefined : undefined; }
+    return undefined;
+  }
+
+  private record(user: ChatUser, text: string, result: string, detail?: number | string) {
+    const entry: LogEntry = { at: Date.now(), user: user.displayName, text: cleanText(text, 160), result, detail };
     this.log.push(entry);
     if (this.log.length > 20) this.log.shift();
     for (const ws of this.ctx.getWebSockets("admin")) this.send(ws, { t: "log", entry });
   }
 
   /** Tell the overlay why nothing happened, at most once per viewer every 10 s. Cooldown hits stay silent. */
-  private reject(user: ChatUser, reason: Rejection) {
+  private reject(user: ChatUser, reason: Rejection, detail?: number | string) {
     if (reason === "cooldown" || !this.settings.showRejections) return;
     const now = Date.now();
     if ((this.rejectNotice.get(user.userId) ?? 0) > now) return;
     this.rejectNotice.set(user.userId, now + 10_000);
     if (this.rejectNotice.size > 500) this.rejectNotice.clear();
-    const detail = reason === "limit" ? this.settings.maxPerUser : reason === "list full" ? this.settings.maxTasks : undefined;
     this.broadcast({ t: "rejected", user: user.displayName, color: user.color || colorFor(user.login), reason, detail });
   }
 
@@ -143,11 +154,13 @@ export class ChannelRoom extends DurableObject<Env> {
     if (this.seen.size > 500) this.seen = new Set([...this.seen].slice(-250));
     const cmd = parseCommand(msg.text, this.settings);
     if (!cmd) return null;
+    this.lastVerb = VERBS[cmd.kind] ?? "done";
     const user = msg.user;
     if (!hasRole(user, this.settings.minRole) && !isMod(user)) return "not allowed";
     const now = Date.now();
     if (!isMod(user) && (this.cooldown.get(user.userId) ?? 0) > now) return "cooldown";
     this.cooldown.set(user.userId, now + 1500);
+    if (this.cooldown.size > 1000) for (const [id, until] of this.cooldown) if (until <= now) this.cooldown.delete(id);
 
     let changed = false;
     let event: { kind: string; user: string; color: string; text: string } | null = null;

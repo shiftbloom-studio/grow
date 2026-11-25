@@ -130,17 +130,17 @@
     <code id="welcomeKey"></code>
     <div class="row" style="flex-wrap:wrap">
       <button class="btn sm" id="copyKey">Copy</button>
-      <button class="btn sm" id="downloadKey">Download as .txt</button>
+      <button class="btn sm" id="downloadKey">Save as .txt</button>
       <button class="btn ghost sm" id="dismiss" disabled title="Copy or download the key first">I've saved it</button>
     </div>
   </div>
 
   <div class="full panel" id="setupPanel" hidden>
-    <div class="label">getting started</div><h2>Four things, then you're live<span class="seed">.</span></h2>
+    <div class="label">getting started</div><h2>Before you go live<span class="seed">.</span></h2>
     <ol class="setup">
-      <li id="s-key"><span>Save your dashboard key.</span></li>
-      <li id="s-channel"><span>Tell grow your Twitch channel.</span><button class="btn sm" id="goChannel">Add channel</button></li>
-      <li id="s-copy"><span>Copy the overlay link.</span><button class="btn sm" id="setupCopy">Copy link</button></li>
+      <li id="s-key"><span id="s-key-text">Save your key</span></li>
+      <li id="s-channel"><span id="s-channel-text">Add your Twitch channel</span><button class="btn sm" id="goChannel">Add channel</button></li>
+      <li id="s-copy"><span id="s-copy-text">Copy the overlay link</span><button class="btn sm" id="setupCopy">Copy link</button></li>
       <li id="s-obs"><span id="s-obs-text">Add it to OBS as a Browser source. This turns green once OBS has it open.</span></li>
     </ol>
   </div>
@@ -156,8 +156,8 @@
       </div>
     </div>
     <div class="panel">
-      <div class="label">from chat</div><h2>Recent commands<span class="seed">.</span></h2>
-      <ul class="log" id="log"><li class="muted" style="display:block;border:0">Nothing yet. Commands from chat and the playground show up here, including the ones grow ignored and why.</li></ul>
+      <div class="label">chat log</div><h2>What chat just typed<span class="seed">.</span></h2>
+      <ul class="log" id="log"><li class="muted" style="display:block;border:0">No commands yet. They show up here as soon as someone types one.</li></ul>
     </div>
     <div class="panel">
       <div class="label">playground</div><h2>Try a chat command<span class="seed">.</span></h2>
@@ -223,6 +223,7 @@
     </div>
   </div>
 </main>
+<footer style="max-width:1240px;margin:0 auto;padding:0 clamp(20px,4vw,40px) 40px;font:400 13px/1.7 var(--mono);color:var(--ink-60)"><a href="/privacy" style="color:inherit">Privacy</a> · <a href="/imprint" style="color:inherit">Imprint</a></footer>
 
 <div class="undo" id="undo" hidden role="status"><span id="undoText"></span><button class="btn sm" id="undoBtn">Undo</button></div>
 
@@ -241,9 +242,14 @@
   let ws, me, settings, tasks = [], retry = 0, saveTimer, pending = {}, awaitingSave = false, outbox = [], overlays = 0, chatState = null;
   let hidden = new Set(), undoTimer = null, undoFlush = null;
 
+  const ROLE_NAMES = { subscriber: "subscribers", vip: "VIPs", moderator: "mods", broadcaster: "mods" };
   const REASONS = {
-    ok: "done", limit: "open-task limit reached", "list full": "list is full", "not allowed": "not allowed to add",
-    "mods only": "mods only", "no task": "no matching task", cooldown: "too fast, ignored",
+    limit: (u, d) => `${u}, you already have ${d} open tasks. Finish one first.`,
+    "list full": () => "The list is full. A mod can clear finished tasks.",
+    "not allowed": (u, d) => `Only ${ROLE_NAMES[d] || "mods"} can add tasks right now.`,
+    "mods only": (u) => `${u}, that one is for mods.`,
+    "no task": (u, d) => d ? `${u}, you don't have a task ${d}.` : `${u}, you don't have a task.`,
+    cooldown: () => "too fast, ignored",
   };
 
   // ---------- dialogs instead of confirm()/prompt() ----------
@@ -351,6 +357,9 @@
     const steps = { "s-key": keySaved, "s-channel": !!settings.twitchLogin, "s-copy": copied, "s-obs": overlays > 0 };
     for (const [id, ok] of Object.entries(steps)) $(id).classList.toggle("ok", ok);
     $("goChannel").hidden = steps["s-channel"]; $("setupCopy").hidden = steps["s-copy"];
+    $("s-key-text").textContent = keySaved ? "Key saved" : "Save your key";
+    $("s-channel-text").textContent = settings.twitchLogin ? "Reading #" + settings.twitchLogin : "Add your Twitch channel";
+    $("s-copy-text").textContent = copied ? "Link copied" : "Copy the overlay link";
     $("s-obs-text").textContent = overlays > 0 ? `OBS has the overlay open${overlays > 1 ? ` (${overlays} sources)` : ""}.` : "Add it to OBS as a Browser source. This turns green once OBS has it open.";
     const all = Object.values(steps).every(Boolean);
     if (all && !$("setupPanel").hidden) store.set("grow:setupDone:" + me.id, "1");
@@ -415,7 +424,7 @@
     if (ul.firstElementChild && ul.firstElementChild.classList.contains("muted")) ul.replaceChildren();
     const li = el("li");
     const time = el("time", "", new Date(e.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-    li.append(time, el("span", "u", e.user), el("span", "c", e.text), el("span", "r" + (e.result === "ok" ? "" : " no"), REASONS[e.result] || e.result));
+    li.append(time, el("span", "u", e.user), el("span", "c", e.text), el("span", "r" + (REASONS[e.result] ? " no" : ""), REASONS[e.result] ? REASONS[e.result](e.user, e.detail) : e.result));
     ul.prepend(li);
     while (ul.children.length > 20) ul.lastElementChild.remove();
   }

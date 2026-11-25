@@ -89,9 +89,11 @@
       added: " added: ", done: " finished: ", undone: " reopened: ",
       typeA: "Nothing on the list yet. Type ", typeB: " to add one.", empty: "Nothing on the list yet.",
       revoked: "This overlay link was replaced. Copy the new one from your dashboard.",
-      limit: (n) => `you already have ${n} open tasks`, "list full": () => "the list is full",
-      "not allowed": () => "adding tasks is limited right now", "mods only": () => "that one is for mods",
-      "no task": () => "you have no task with that number",
+      limit: (d) => `{u}, you already have ${d} open tasks. Finish one first.`,
+      "list full": () => "The list is full. A mod can clear finished tasks.",
+      "not allowed": (d) => `Only ${({ subscriber: "subscribers", vip: "VIPs", moderator: "mods", broadcaster: "mods" })[d] || "mods"} can add tasks right now.`,
+      "mods only": () => "{u}, that one is for mods.",
+      "no task": (d) => d ? `{u}, you don't have a task ${d}.` : "{u}, you don't have a task.",
     },
   };
   const tr = () => TEXT.en;
@@ -180,12 +182,12 @@
     if (!ev) { toastTimer = null; return; }
     t.replaceChildren();
     t.classList.toggle("warn", ev.kind === "rejected");
-    const who = el("b", "", ev.kind === "rejected" ? "@" + ev.user : ev.user); who.style.color = ev.kind === "rejected" ? "" : ev.color;
-    t.append(who);
     if (ev.kind === "rejected") {
       const fn = tr()[ev.reason];
-      t.append(document.createTextNode(": " + (fn ? fn(ev.detail) : ev.reason)));
+      (fn ? fn(ev.detail) : ev.reason).split("{u}").forEach((part, i) => { if (i) t.append(el("b", "", ev.user)); t.append(document.createTextNode(part)); });
     } else {
+      const who = el("b", "", ev.user); who.style.color = ev.color;
+      t.append(who);
       t.append(document.createTextNode(tr()[ev.kind] || " "));
       t.append(document.createTextNode(ev.text));
     }

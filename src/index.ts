@@ -10,6 +10,7 @@ import brandCss from "./pages/brand.css";
 import bloomJs from "./pages/bloom.js.txt";
 import faviconSvg from "./pages/favicon.svg";
 import commandsHtml from "./pages/commands.html";
+import { LEGAL_PATHS, legalPage, type LegalPath } from "./legal";
 import llmsTxt from "./pages/llms.txt";
 import { FONTS_CSS, fontResponse } from "./fonts";
 
@@ -133,9 +134,9 @@ async function currentChannel(req: Request, env: Env): Promise<ChannelRow | null
 }
 
 /** CSRF guard for cookie-authenticated mutations: require same-origin. */
-function sameOrigin(req: Request): boolean {
+function sameOrigin(req: Request, requireOrigin = false): boolean {
   const o = req.headers.get("origin");
-  return !o || o === new URL(req.url).origin;
+  return o ? o === new URL(req.url).origin : !requireOrigin;
 }
 
 function stub(env: Env, channelId: string) {
@@ -200,6 +201,7 @@ async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
   }
 
   if (path === "/api/logout" && req.method === "POST") {
+    if (!sameOrigin(req)) return json({ error: "bad origin" }, 403);
     const token = getCookie(req, SESSION_COOKIE);
     if (token) await env.DB.prepare("DELETE FROM sessions WHERE token_hash = ?").bind(await sha256(token)).run();
     return json({ ok: true }, 200, { "set-cookie": cookie(SESSION_COOKIE, "", 0) });
@@ -215,7 +217,7 @@ async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
 
   if (path === "/api/ws") {
     if (req.headers.get("Upgrade") !== "websocket") return json({ error: "expected websocket" }, 426);
-    if (!sameOrigin(req)) return json({ error: "bad origin" }, 403);
+    if (!sameOrigin(req, true)) return json({ error: "bad origin" }, 403);
     return stub(env, ch.id).fetch("https://do/ws?role=admin", req);
   }
 
@@ -310,6 +312,7 @@ export default {
       if (path === "/") return html(landingHtml);
       if (path === "/commands") return html(commandsHtml);
       if (path === "/app") return html(appHtml, NOINDEX);
+      if ((LEGAL_PATHS as string[]).includes(path)) return html(legalPage(path as LegalPath, env, base), NOINDEX);
       if (path === "/healthz") return json({ ok: true });
       if (path === "/robots.txt") return asset(robotsTxt(base), "text/plain; charset=utf-8");
       if (path === "/sitemap.xml") return asset(sitemapXml(base), "application/xml; charset=utf-8");

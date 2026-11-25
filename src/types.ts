@@ -7,6 +7,16 @@ export interface Env {
   PUBLIC_URL?: string;
   TWITCH_CLIENT_ID?: string;
   TWITCH_CLIENT_SECRET?: string;
+  /** Operator details for the imprint and privacy policy (see README, "Legal pages"). */
+  LEGAL_NAME?: string;
+  LEGAL_BUSINESS?: string;
+  LEGAL_STREET?: string;
+  LEGAL_CITY?: string;
+  LEGAL_COUNTRY?: string;
+  LEGAL_EMAIL?: string;
+  LEGAL_PHONE?: string;
+  LEGAL_VAT_ID?: string;
+  LEGAL_AUTHORITY?: string;
 }
 
 export type Role = "everyone" | "subscriber" | "vip" | "moderator" | "broadcaster";

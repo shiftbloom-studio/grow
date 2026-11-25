@@ -95,6 +95,14 @@ grow runs entirely on Cloudflare's developer platform (Workers, Durable Objects 
    npx wrangler secret put TWITCH_CLIENT_ID
    npx wrangler secret put TWITCH_CLIENT_SECRET
    ```
+7. **Legal pages.** grow serves a privacy policy and an imprint in English and German at `/privacy`, `/datenschutz`, `/imprint` and `/impressum`. They name whoever runs the copy, so set your details as secrets. They stay out of the repository and survive every deploy:
+   ```bash
+   npx wrangler secret put LEGAL_NAME       # person or company
+   npx wrangler secret put LEGAL_STREET
+   npx wrangler secret put LEGAL_CITY       # postcode and city
+   npx wrangler secret put LEGAL_EMAIL
+   ```
+   `LEGAL_BUSINESS`, `LEGAL_COUNTRY`, `LEGAL_PHONE`, `LEGAL_VAT_ID` and `LEGAL_AUTHORITY` (the data protection authority responsible for you) are optional. Until the four required ones are set, the pages say that operator details are missing. Read the privacy policy before going live and adjust `src/legal.ts` if your copy processes more than the stock code does.
 
 ### Configuration
 
@@ -105,6 +113,8 @@ grow runs entirely on Cloudflare's developer platform (Workers, Durable Objects 
 | `RL_AUTH` | rate limit binding | no | limits sign-in and creation per IP |
 | `PUBLIC_URL` | var | no | origin used in overlay links (defaults to the request origin) |
 | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | secrets | no | enables "Continue with Twitch" |
+| `LEGAL_NAME`, `LEGAL_STREET`, `LEGAL_CITY`, `LEGAL_EMAIL` | secrets | yes, for a public copy | operator named in the imprint and privacy policy |
+| `LEGAL_BUSINESS`, `LEGAL_COUNTRY`, `LEGAL_PHONE`, `LEGAL_VAT_ID`, `LEGAL_AUTHORITY` | secrets | no | more imprint details and the responsible data protection authority |
 
 ### Continuous deployment
 

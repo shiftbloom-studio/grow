@@ -116,6 +116,17 @@ grow runs entirely on Cloudflare's developer platform (Workers, Durable Objects 
 | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | secrets | no | enables "Continue with Twitch" |
 | `LEGAL_NAME`, `LEGAL_STREET`, `LEGAL_CITY`, `LEGAL_EMAIL` | secrets | yes, for a public copy | operator named in the imprint and privacy policy |
 | `LEGAL_BUSINESS`, `LEGAL_COUNTRY`, `LEGAL_PHONE`, `LEGAL_VAT_ID`, `LEGAL_AUTHORITY` | secrets | no | more imprint details and the responsible data protection authority |
+| `POSTHOG_LOGS` | var | no | `eu` or `us` when logs are exported to PostHog (see below); the privacy policy then names PostHog |
+
+### Logs in PostHog
+
+Workers Logs can be exported over OpenTelemetry without code changes. Create a logs destination under Workers & Pages > Observability > Destinations with the URL `https://eu.i.posthog.com/i/v1/logs` (or `us.i.posthog.com`) and the header `Authorization: Bearer <your PostHog project token>`, then add it to the Worker's config:
+
+```jsonc
+"observability": { "enabled": true, "redact_query_string": true, "logs": { "enabled": true, "invocation_logs": false, "destinations": ["<your-destination-name>"] } }
+```
+
+Then set `POSTHOG_LOGS`. Keep `invocation_logs` off: Cloudflare's invocation logs contain the full request URL, and an overlay URL is its overlay key. With `POSTHOG_LOGS` set, grow writes its own line per request instead, with overlay keys masked, no query string and only the user agent, language, content type and length headers.
 
 ### Deploy with Workers Builds
 

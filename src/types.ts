@@ -17,6 +17,7 @@ export interface Env {
   LEGAL_PHONE?: string;
   LEGAL_VAT_ID?: string;
   LEGAL_AUTHORITY?: string;
+  POSTHOG_LOGS?: string;
 }
 
 export type Role = "everyone" | "subscriber" | "vip" | "moderator" | "broadcaster";

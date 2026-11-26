@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 shiftbloom studio and contributors
-export interface Env {
+import type { PostHogEnv } from "./posthog";
+
+export interface Env extends PostHogEnv {
   DB: D1Database;
   CHANNEL: DurableObjectNamespace;
   RL_AUTH?: { limit(opts: { key: string }): Promise<{ success: boolean }> };

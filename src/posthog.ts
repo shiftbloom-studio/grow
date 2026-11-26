@@ -64,9 +64,12 @@ export async function phProxy(req: Request, env: PostHogEnv, init?: { app: strin
   // cookieless mode hashes the visitor's IP and user agent on PostHog's side, so it needs the real address
   const ip = req.headers.get("cf-connecting-ip");
   if (ip) headers.set("x-forwarded-for", ip);
+  // the path only ever selects an endpoint on the PostHog host; anything that would leave it is refused
+  const target = new URL(path.replace(/^\/+/, "/") + url.search, host);
+  if (target.origin !== new URL(host).origin) return new Response("not found", { status: 404 });
   let res: Response;
   try {
-    res = await fetch(host + path + url.search, {
+    res = await fetch(target.toString(), {
       method: req.method,
       headers,
       body,
@@ -185,12 +188,13 @@ export function phCapture(env: PostHogEnv, ctx: WaitUntil | null | undefined, ev
 /** Long random strings (tokens, codes, ids) are masked so an error message can't carry them to PostHog. */
 export const scrubText = (s: string) =>
   s
+    .slice(0, 2000)
     // quoted parts: V8 quotes the input in JSON.parse errors, which may be a paste or a URL to shorten
     .replace(/"[^"]*"|'[^']*'|`[^`]*`/g, '"[masked]"')
     .replace(/\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, "[url]")
     .replace(/[A-Za-z0-9_-]{16,}/g, "[masked]")
     // item ids and codes are short: mask every word that mixes letters and digits
-    .replace(/\b(?=[A-Za-z_-]*\d)(?=[0-9_-]*[A-Za-z])[A-Za-z0-9_-]{6,}\b/g, "[masked]")
+    .replace(/[A-Za-z0-9_-]{6,}/g, (w) => (/\d/.test(w) && /[A-Za-z]/.test(w) ? "[masked]" : w))
     .slice(0, 500);
 
 function frames(stack: string | undefined) {

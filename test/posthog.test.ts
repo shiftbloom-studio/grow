@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { runInNewContext } from "node:vm";
 import { phAi, phCapture, phException, phKey, phProxy, phScriptTag, scrubText, sizeBucket } from "../src/posthog";

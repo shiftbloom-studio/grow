@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { runInNewContext } from "node:vm";
 import { phAi, phCapture, phException, phKey, phProxy, phScriptTag, scrubText, sizeBucket } from "../src/posthog";
@@ -71,7 +72,7 @@ describe("proxy", () => {
 
 describe("init.js", () => {
   async function load(path: string) {
-    const res = await phProxy(new Request("https://grow.test/_sb/init.js"), env, { app: "grow", keep: KEEP });
+    const res = await phProxy(new Request("https://grow.test/_sb/init.js"), env, { app: "grow", keep: KEEP, secret: /grow_[A-Za-z0-9]{16,}|\/o\/[A-Za-z0-9]{24}|#welcome=[^\s"&]*/ });
     const code = await res!.text();
     let cfg: any = null;
     const script = { parentNode: { insertBefore() {} } };
@@ -114,6 +115,28 @@ describe("init.js", () => {
     const kept = cfg.before_send({ event: "$pageview", properties: { $current_url: "https://grow.test/privacy?utm=1" } });
     expect(kept.properties.$current_url).toBe("https://grow.test/privacy");
     expect(cfg.before_send({ event: "x", properties: { $referrer: "$direct" } }).properties.$referrer).toBe("$direct");
+  });
+  it("never sends the #welcome key, overlay keys or element labels", async () => {
+    const { cfg } = await load("/app");
+    expect(cfg.disable_capture_url_hashes).toBe(true);
+    const key = "grow_" + "a".repeat(36);
+    const overlay = "/o/" + "B".repeat(24);
+    const ev = cfg.before_send({
+      event: "$$heatmap",
+      properties: {
+        $heatmap_data: { [`https://grow.test/app#welcome=${key}`]: [{ x: 1 }], "https://grow.test/app": [{ x: 2 }] },
+        $elements: [{ tag_name: "button", attr__aria_label: "Finish buy milk" }],
+        $elements_chain: 'button.ib:attr__aria-label="Finish \\"milk\\" now"attr__title="x"nth-child="1"',
+        $exception_list: [{ value: `failed for ${key} at ${overlay}`, stacktrace: { frames: [{ filename: `https://grow.test/app#welcome=${key}` }] } }],
+      },
+    });
+    const out = JSON.stringify(ev.properties);
+    expect(out).not.toContain(key);
+    expect(out).not.toContain("B".repeat(24));
+    expect(out).not.toContain("milk");
+    expect(ev.properties.$elements).toBeUndefined();
+    expect(ev.properties.$elements_chain).toBe('button.ib:nth-child="1"');
+    expect(ev.properties.$heatmap_data["https://grow.test/[private]"]).toEqual([{ x: 1 }, { x: 2 }]);
   });
 });
 

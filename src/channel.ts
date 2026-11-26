@@ -54,6 +54,9 @@ export async function channelRef(id: string) {
   return [...new Uint8Array(d).slice(0, 8)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/** Dashboard actions that are counted; anything else a client sends is not a key in the stats. */
+const DASHBOARD_OPS = new Set(["add", "toggle", "edit", "delete", "move", "clearDone", "clearAll", "settings", "simulate", "delete-many"]);
+
 export class ChannelRoom extends DurableObject<Env> {
   private settings: Settings = DEFAULT_SETTINGS;
   private irc: WebSocket | null = null;
@@ -361,7 +364,7 @@ export class ChannelRoom extends DurableObject<Env> {
     if (msg.op === "ping") return this.send(ws, { t: "pong" });
     if (att?.role !== "admin") return; // overlays are read-only
     const id = typeof msg.id === "string" ? msg.id : "";
-    if (typeof msg.op === "string" && /^[a-z-]{1,20}$/.test(msg.op)) this.count(`dashboard_${msg.op.replace(/-/g, "_")}`);
+    if (typeof msg.op === "string" && DASHBOARD_OPS.has(msg.op)) this.count(`dashboard_${msg.op.replace(/-/g, "_")}`);
     switch (msg.op) {
       case "add": {
         const text = cleanText(String(msg.text ?? ""));

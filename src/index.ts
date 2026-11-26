@@ -79,6 +79,8 @@ function html(body: string, extra: HeadersInit = {}) {
 
 /** Pages whose address may be reported as is; overlay links (/o/<key>) never load the script, and anything else is masked. */
 const PH_KEEP = /^\/(commands|app|privacy|datenschutz|imprint|impressum)?$/;
+/** Dashboard keys, overlay paths and the first-run #welcome= hash, masked anywhere in a browser event. */
+const PH_SECRET = /grow_[A-Za-z0-9]{16,}|\/o\/[A-Za-z0-9]{24}|#welcome=[^\s"&]*/;
 const withAnalytics = (page: string, env: Env) => {
   const tag = phScriptTag(env);
   return tag ? page.replace("</head>", `${tag}\n</head>`) : page;
@@ -350,7 +352,7 @@ const app = {
     const path = url.pathname;
     const base = (env.PUBLIC_URL || SITE).replace(/\/$/, "");
     try {
-      const ph = await phProxy(req, env, { app: "grow", keep: PH_KEEP });
+      const ph = await phProxy(req, env, { app: "grow", keep: PH_KEEP, secret: PH_SECRET });
       if (ph) return ph;
       if (path === "/") return html(withAnalytics(landingHtml, env));
       if (path === "/commands") return html(withAnalytics(commandsHtml, env));

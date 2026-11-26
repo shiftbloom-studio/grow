@@ -27,6 +27,9 @@ export function phHost(env: PostHogEnv): string {
 /** PostHog Cloud serves the SDK from a separate host (us.i.posthog.com -> us-assets.i.posthog.com). */
 export const phAssetsHost = (host: string) => host.replace(/^https:\/\/(us|eu)\.i\.posthog\.com$/, "https://$1-assets.i.posthog.com");
 
+/** posthog-js batches stay far below this; anything bigger is not a PostHog client. */
+const MAX_BODY = 1_000_000;
+const METHODS = new Set(["GET", "HEAD", "POST", "OPTIONS"]);
 const FORWARD = ["content-type", "content-encoding", "accept", "accept-encoding", "accept-language", "user-agent", "origin"];
 
 /** Same-origin proxy for posthog-js: /_sb/static/* and /_sb/array/* to the assets host, the rest to the API host.
@@ -38,7 +41,15 @@ export async function phProxy(req: Request, env: PostHogEnv, init?: { app: strin
   if (!key) return new Response("not found", { status: 404 });
   const path = url.pathname.slice(PH_PREFIX.length) || "/";
   if (path === "/init.js" && init) {
-    return new Response(initScript(key, init), { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=300" } });
+    return new Response(initScript(key, phHost(env), init), { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=300" } });
+  }
+  if (!METHODS.has(req.method)) return new Response("method not allowed", { status: 405 });
+  let body: BodyInit | undefined;
+  if (req.method === "POST") {
+    if (Number(req.headers.get("content-length") || 0) > MAX_BODY) return new Response("payload too large", { status: 413 });
+    const buf = await readCapped(req, MAX_BODY);
+    if (!buf) return new Response("payload too large", { status: 413 });
+    body = buf;
   }
   const host = /^\/(static|array)\//.test(path) ? phAssetsHost(phHost(env)) : phHost(env);
   const headers = new Headers();
@@ -57,7 +68,7 @@ export async function phProxy(req: Request, env: PostHogEnv, init?: { app: strin
     res = await fetch(host + path + url.search, {
       method: req.method,
       headers,
-      body: req.method === "GET" || req.method === "HEAD" ? undefined : req.body,
+      body,
       redirect: "manual",
     });
   } catch {
@@ -68,15 +79,34 @@ export async function phProxy(req: Request, env: PostHogEnv, init?: { app: strin
   return out;
 }
 
+/** The request body, or null once it passes `max` bytes (a missing or wrong content-length can't get around the cap). */
+async function readCapped(req: Request, max: number): Promise<Uint8Array | null> {
+  if (!req.body) return new Uint8Array(0);
+  const reader = req.body.getReader();
+  const parts: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) { void reader.cancel(); return null; }
+    parts.push(value);
+  }
+  const out = new Uint8Array(size);
+  let at = 0;
+  for (const p of parts) { out.set(p, at); at += p.byteLength; }
+  return out;
+}
+
 /** <script> tag for the pages that should report to PostHog. Empty when PostHog is off. */
 export const phScriptTag = (env: PostHogEnv) => (phKey(env) ? `<script src="${PH_PREFIX}/init.js" defer></script>` : "");
 
 /** posthog-js loader plus config. URLs are reduced before sending: query and hash always go, and any path that
  * `keep` does not match (an item, a claim link) is reported as "/[private]". */
-function initScript(key: string, o: { app: string; keep: RegExp; secret?: RegExp; extra?: Props }) {
+function initScript(key: string, host: string, o: { app: string; keep: RegExp; secret?: RegExp; extra?: Props }) {
   const config = {
     api_host: PH_PREFIX,
-    ui_host: "https://us.posthog.com",
+    ui_host: host.replace(/^https:\/\/(us|eu)\.i\.posthog\.com$/, "https://$1.posthog.com"),
     cookieless_mode: "always",
     person_profiles: "identified_only",
     disable_session_recording: true,
@@ -107,9 +137,15 @@ function path(p){p=(p||"/").replace(/\\/+$/,"")||"/";return KEEP.test(p)?p:"/[pr
 function clean(v){if(typeof v!=="string"||!/^https?:/.test(v))return v;try{var u=new URL(v,location.origin);if(u.origin!==location.origin)return u.origin;return u.origin+path(u.pathname)}catch(e){return null}}
 var URLS=["$external_click_url","$current_url","$referrer","$initial_referrer","$initial_current_url","$session_entry_url","$prev_pageview_url","$session_entry_referrer"];
 var PATHS=["$pathname","$initial_pathname","$session_entry_pathname","$prev_pageview_pathname"];
-function scrub(ev){if(!ev||!ev.properties)return ev;var p=ev.properties,i;for(i=0;i<URLS.length;i++)if(URLS[i] in p)p[URLS[i]]=clean(p[URLS[i]]);for(i=0;i<PATHS.length;i++)if(typeof p[PATHS[i]]==="string")p[PATHS[i]]=path(p[PATHS[i]]);
-if(typeof p.$elements_chain==="string")p.$elements_chain=p.$elements_chain.replace(/attr__(?!id=|class=|data-ph=)[\\w-]+="(?:\\\\.|[^"\\\\])*"/g,"");
-delete p.$elements;if(p.$set)delete p.$set;if(p.$set_once)delete p.$set_once;p.app=${JSON.stringify(o.app)};ev.properties=deep(p,0);return ev}
+function mask(t){return typeof t!=="string"?t:t.replace(/"[^"]*"|'[^']*'|\\x60[^\\x60]*\\x60/g,'"[masked]"').replace(/\\b[a-z][a-z0-9+.-]*:\\/\\/\\S+/gi,"[url]").replace(/[A-Za-z0-9_-]{16,}/g,"[masked]").slice(0,500)}
+var ATTR=/^attr__(id|class|data-ph.*)$/;
+function scrub(ev){if(!ev||!ev.properties)return ev;var p=ev.properties,i,k;for(i=0;i<URLS.length;i++)if(URLS[i] in p)p[URLS[i]]=clean(p[URLS[i]]);for(i=0;i<PATHS.length;i++)if(typeof p[PATHS[i]]==="string")p[PATHS[i]]=path(p[PATHS[i]]);
+if(typeof p.$elements_chain==="string")p.$elements_chain=p.$elements_chain.replace(/attr__(?!id=|class=|data-ph)[\\w-]+="(?:[^"\\\\]|\\\\.)*"/g,"").replace(/href="(?:[^"\\\\]|\\\\.)*"/g,'href="[private]"');
+if(Array.isArray(p.$elements))for(i=0;i<p.$elements.length;i++){var el=p.$elements[i];if(el){for(k in el)if(k.indexOf("attr__")===0&&!ATTR.test(k))delete el[k];if("href" in el)el.href="[private]"}}
+for(k in p)if(/^\\$web_vitals_.*_event$/.test(k)&&p[k]&&typeof p[k]==="object"&&"$current_url" in p[k])p[k].$current_url=clean(p[k].$current_url);
+if(Array.isArray(p.$exception_list))for(i=0;i<p.$exception_list.length;i++){var x=p.$exception_list[i];if(x)x.value=mask(x.value)}
+if("$exception_message" in p)p.$exception_message=mask(p.$exception_message);
+if(p.$set)delete p.$set;if(p.$set_once)delete p.$set_once;p.app=${JSON.stringify(o.app)};ev.properties=deep(p,0);return ev}
 // last pass over every string and key (heatmap data is keyed by URL, web vitals and exceptions carry URLs too)
 function str(v){if(/^https?:/.test(v)){v=clean(v);if(v===null)return null}return v.replace(SECRET,"[masked]")}
 function deep(v,d){if(typeof v==="string")return str(v);if(!v||typeof v!=="object"||d>8)return v;if(Array.isArray(v)){for(var i=0;i<v.length;i++)v[i]=deep(v[i],d+1);return v}
@@ -146,7 +182,15 @@ export function phCapture(env: PostHogEnv, ctx: WaitUntil | null | undefined, ev
 }
 
 /** Long random strings (tokens, codes, ids) are masked so an error message can't carry them to PostHog. */
-export const scrubText = (s: string) => s.replace(/[A-Za-z0-9_-]{16,}/g, "[masked]").slice(0, 500);
+export const scrubText = (s: string) =>
+  s
+    // quoted parts: V8 quotes the input in JSON.parse errors, which may be a paste or a URL to shorten
+    .replace(/"[^"]*"|'[^']*'|`[^`]*`/g, '"[masked]"')
+    .replace(/\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, "[url]")
+    .replace(/[A-Za-z0-9_-]{16,}/g, "[masked]")
+    // item ids and codes are short: mask every word that mixes letters and digits
+    .replace(/\b(?=[A-Za-z_-]*\d)(?=[0-9_-]*[A-Za-z])[A-Za-z0-9_-]{6,}\b/g, "[masked]")
+    .slice(0, 500);
 
 function frames(stack: string | undefined) {
   const out: Props[] = [];

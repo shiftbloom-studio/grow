@@ -134,7 +134,7 @@ describe("init.js", () => {
     expect(out).not.toContain(key);
     expect(out).not.toContain("B".repeat(24));
     expect(out).not.toContain("milk");
-    expect(ev.properties.$elements).toBeUndefined();
+    expect(ev.properties.$elements).toEqual([{ tag_name: "button" }]);
     expect(ev.properties.$elements_chain).toBe('button.ib:nth-child="1"');
     expect(ev.properties.$heatmap_data["https://grow.test/[private]"]).toEqual([{ x: 1 }, { x: 2 }]);
   });

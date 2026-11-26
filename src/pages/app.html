@@ -446,7 +446,8 @@
     if (ul.firstElementChild && ul.firstElementChild.classList.contains("muted")) ul.replaceChildren();
     const li = el("li");
     const time = el("time", "", new Date(e.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-    li.append(time, el("span", "u", e.user), el("span", "c", e.text), el("span", "r" + (REASONS[e.result] ? " no" : ""), REASONS[e.result] ? REASONS[e.result](e.user, e.detail) : e.result));
+    const reason = Object.hasOwn(REASONS, e.result) && typeof REASONS[e.result] === "function" ? REASONS[e.result] : null;
+    li.append(time, el("span", "u", e.user), el("span", "c", e.text), el("span", "r" + (reason ? " no" : ""), reason ? reason(e.user, e.detail) : e.result));
     ul.prepend(li);
     while (ul.children.length > 20) ul.lastElementChild.remove();
   }

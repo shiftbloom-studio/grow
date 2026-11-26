@@ -3,6 +3,7 @@
 import { ChannelRoom } from "./channel";
 import { cleanText } from "./commands";
 import type { Env } from "./types";
+import { requestLine } from "./accesslog";
 import landingHtml from "./pages/landing.html";
 import appHtml from "./pages/app.html";
 import overlayHtml from "./pages/overlay.html";
@@ -323,7 +324,7 @@ async function twitchAuth(req: Request, env: Env, url: URL): Promise<Response> {
   return new Response(null, { status: 302, headers });
 }
 
-export default {
+const app = {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     const path = url.pathname;
@@ -367,5 +368,15 @@ export default {
       console.error(err);
       return json({ error: "internal error" }, 500);
     }
+  },
+} satisfies ExportedHandler<Env>;
+
+export default {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    if (!env.POSTHOG_LOGS) return app.fetch(req, env, ctx);
+    const started = Date.now();
+    const res = await app.fetch(req, env, ctx);
+    console.log(requestLine(req, res.status, Date.now() - started));
+    return res;
   },
 } satisfies ExportedHandler<Env>;

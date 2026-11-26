@@ -60,7 +60,7 @@ export async function phProxy(req: Request, env: PostHogEnv, init?: { app: strin
   }
   // capture v1 sends the project token as a bearer token; anything else (such as an app's API token) is dropped
   const auth = req.headers.get("authorization");
-  if (auth && /^Bearer ph[csx]_/.test(auth)) headers.set("authorization", auth);
+  if (auth && /^Bearer phc_/.test(auth)) headers.set("authorization", auth);
   // cookieless mode hashes the visitor's IP and user agent on PostHog's side, so it needs the real address
   const ip = req.headers.get("cf-connecting-ip");
   if (ip) headers.set("x-forwarded-for", ip);

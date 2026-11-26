@@ -1,11 +1,21 @@
 # grow.
 
+A to-do list your Twitch chat can write to. Viewers add tasks, you get an OBS overlay.
+
+**Live:** [grow.shiftbloom.studio](https://grow.shiftbloom.studio), free to use · **License:** AGPL-3.0-or-later
+
 [![CI](https://github.com/shiftbloom-studio/grow/actions/workflows/ci.yml/badge.svg)](https://github.com/shiftbloom-studio/grow/actions/workflows/ci.yml)
 [![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-FF2E52.svg)](LICENSE)
 
 grow puts a to-do list on your stream that your chat can edit. Viewers add goals with `!task` and tick them off with `!done`, and the list updates in OBS while everyone works. It started as a tool for study streams, where watching other people finish things turns out to be motivating.
 
-Hosted version, free to use: **https://grow.shiftbloom.studio**
+## Features
+
+- Chat commands for viewers to add, finish, edit and remove their own tasks, plus moderation commands for mods.
+- A transparent OBS browser source that updates live, with five themes and settings you change from the dashboard.
+- No bot account: grow reads chat anonymously, and only while an overlay or the dashboard is open.
+- Read-only overlay links you can rotate, a dashboard key instead of a password, and optional sign-in with Twitch.
+- Limits per viewer and in total, and a choice of who may add tasks.
 
 ## Using the hosted version
 
@@ -55,20 +65,11 @@ Dashboard ───────ws──────┤   Worker (router, auth)  
 
 Overlay links are read-only. Dashboard keys and session tokens are stored only as SHA-256 hashes. Pages send a strict CSP and the usual security headers, sign-in and overlay creation have a per-IP rate limit, and there is no `workers.dev` route, so traffic always passes the zone's WAF. Browsers never contact a third party: fonts are served from the same origin. See [SECURITY.md](SECURITY.md).
 
-## Development
+## Tech stack
 
-Requirements: Node.js 22+. No Cloudflare account needed.
-
-```bash
-npm install
-cp .dev.vars.example .dev.vars          # optional
-npx wrangler d1 migrations apply grow-cloud --local
-npm run dev                              # http://localhost:8787
-npm test                                 # unit tests
-npm run typecheck
-```
-
-More in [CONTRIBUTING.md](CONTRIBUTING.md).
+- TypeScript, bundled by Wrangler
+- Cloudflare Workers with Durable Objects (SQLite and hibernating WebSockets), D1 and rate limiting
+- Node.js 26 for builds and tests, Vitest for tests
 
 ## Self-hosting
 
@@ -89,7 +90,7 @@ grow runs entirely on Cloudflare's developer platform (Workers, Durable Objects 
    ```bash
    npm run deploy
    ```
-5. **Optional: deploy on every push with Workers Builds.** Connect the repository to the Worker in the Cloudflare dashboard (Settings > Build) and add the build variables `D1_DATABASE_ID` and `GROW_HOSTNAME`. The deploy command fills them into `wrangler.jsonc`, so your ids never have to be committed. See [Continuous deployment](#continuous-deployment).
+5. **Optional: deploy on every push with Workers Builds.** Connect the repository to the Worker in the Cloudflare dashboard (Settings > Build) and add the build variables `D1_DATABASE_ID` and `GROW_HOSTNAME`. The deploy command fills them into `wrangler.jsonc`, so your ids never have to be committed. See [Deploy with Workers Builds](#deploy-with-workers-builds).
 6. **Optional: Twitch login.** Create an app at [dev.twitch.tv](https://dev.twitch.tv/console/apps) with redirect URL `https://<your-domain>/auth/twitch/callback`, then:
    ```bash
    npx wrangler secret put TWITCH_CLIENT_ID
@@ -116,7 +117,7 @@ grow runs entirely on Cloudflare's developer platform (Workers, Durable Objects 
 | `LEGAL_NAME`, `LEGAL_STREET`, `LEGAL_CITY`, `LEGAL_EMAIL` | secrets | yes, for a public copy | operator named in the imprint and privacy policy |
 | `LEGAL_BUSINESS`, `LEGAL_COUNTRY`, `LEGAL_PHONE`, `LEGAL_VAT_ID`, `LEGAL_AUTHORITY` | secrets | no | more imprint details and the responsible data protection authority |
 
-### Continuous deployment
+### Deploy with Workers Builds
 
 `.github/workflows/ci.yml` runs typecheck and tests on every push and pull request. Deploys run in [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/), so no API token is stored on GitHub. A working setup for `main`:
 
@@ -127,9 +128,28 @@ grow runs entirely on Cloudflare's developer platform (Workers, Durable Objects 
   ```
 - Build variables: `D1_DATABASE_ID`, `GROW_HOSTNAME`, and `NODE_VERSION=26`
 
+## Development
+
+Requirements: Node.js 26. No Cloudflare account needed.
+
+```bash
+npm install
+cp .dev.vars.example .dev.vars          # optional
+npx wrangler d1 migrations apply grow-cloud --local
+npm run dev                              # http://localhost:8787
+npm test                                 # unit tests
+npm run typecheck
+```
+
+More in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Contributing
 
-Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md). Report security issues privately as described in [SECURITY.md](SECURITY.md).
+Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Security
+
+Please don't report vulnerabilities in public issues. Use GitHub's private vulnerability reporting on this repository or email [safety@shiftbloom.studio](mailto:safety@shiftbloom.studio). [SECURITY.md](SECURITY.md) has the details.
 
 ## License
 
@@ -137,4 +157,6 @@ Copyright (C) 2026 shiftbloom studio and contributors.
 
 grow is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version (`AGPL-3.0-or-later`). See [LICENSE](LICENSE). If you run a modified version as a network service, you must offer its source to its users.
 
-Made in Hamburg by [shiftbloom studio](https://shiftbloom.studio).
+---
+
+grow is part of [shiftbloom studio](https://shiftbloom.studio), an open studio from Hamburg. All of our apps are open source at [github.com/shiftbloom-studio](https://github.com/shiftbloom-studio).

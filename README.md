@@ -122,7 +122,7 @@ grow runs entirely on Cloudflare's developer platform (Workers, Durable Objects 
 
 ### Logs in PostHog
 
-Workers Logs can be exported over OpenTelemetry without code changes. Create a logs destination under Workers & Pages > Observability > Destinations with the URL `https://eu.i.posthog.com/i/v1/logs` (or `us.i.posthog.com`) and the header `Authorization: Bearer <your PostHog project token>`, then add it to the Worker's config:
+Workers Logs can be exported over OpenTelemetry without code changes. Create a logs destination under Workers & Pages > Observability > Destinations with the URL `https://us.i.posthog.com/i/v1/logs` (or `eu.i.posthog.com`), matching the region of `POSTHOG_HOST`, and the header `Authorization: Bearer <your PostHog project token>`, then add it to the Worker's config:
 
 ```jsonc
 "observability": { "enabled": true, "redact_query_string": true, "logs": { "enabled": true, "invocation_logs": false, "destinations": ["<your-destination-name>"] } }

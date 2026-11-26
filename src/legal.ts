@@ -10,7 +10,19 @@ import type { Env } from "./types";
 export type LegalPath = "/privacy" | "/datenschutz" | "/imprint" | "/impressum";
 export const LEGAL_PATHS: LegalPath[] = ["/privacy", "/datenschutz", "/imprint", "/impressum"];
 
-const UPDATED = { en: "Last updated 25 November 2026", de: "Stand: 25. November 2026" };
+const UPDATED = { en: "Last updated 26 November 2026", de: "Stand: 26. November 2026" };
+
+// Set POSTHOG_LOGS to "eu" or "us" when the Worker's logs are exported to PostHog (see README).
+type LogRegion = { en: string; de: string };
+const LOG_REGION: Record<string, LogRegion> = { eu: { en: "the EU (Frankfurt)", de: "in der EU (Frankfurt)" }, us: { en: "the USA", de: "in den USA" } };
+const logRegion = (v: unknown): LogRegion | null => LOG_REGION[String(v ?? "").trim().toLowerCase()] ?? null;
+const errorLogsEn = (where: LogRegion): string => `<h2>Logs at PostHog</h2>
+<p>The request logs described under "Hosting" (IP address, approximate location, the address requested and details your browser sends) and the error messages our Worker writes (such as which step failed and the technical ID of the overlay or channel concerned) are also sent to PostHog Inc., 2261 Market St. #4008, San Francisco, CA 94114, USA, which stores them for us on servers in ${where.en}. They contain no file contents. We use them only to fix errors and to prevent abuse, and PostHog deletes them after 14 days. The legal basis is our legitimate interest in running grow securely and reliably (Art. 6(1)(f) GDPR). PostHog processes the data as our processor under a data processing agreement (Art. 28 GDPR) that contains the EU standard contractual clauses. More in <a href="https://posthog.com/privacy" rel="noopener">PostHog's privacy policy</a>.</p>
+`;
+const errorLogsDe = (where: LogRegion): string => `<h2>Protokolle bei PostHog</h2>
+<p>Die unter „Hosting“ beschriebenen Anfrageprotokolle (IP-Adresse, ungefährer Standort, aufgerufene Adresse und Angaben, die dein Browser mitsendet) und die Fehlermeldungen, die unser Worker schreibt (etwa welcher Schritt fehlgeschlagen ist und die technische ID des betroffenen Overlays oder Kanals), werden außerdem an PostHog Inc., 2261 Market St. #4008, San Francisco, CA 94114, USA, gesendet, die sie für uns auf Servern ${where.de} speichert. Sie enthalten keine Dateiinhalte. Wir nutzen sie nur, um Fehler zu beheben und Missbrauch zu verhindern, und PostHog löscht sie nach 14 Tagen. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren und zuverlässigen Betrieb von grow (Art. 6 Abs. 1 lit. f DSGVO). PostHog verarbeitet die Daten als unser Auftragsverarbeiter auf Grundlage eines Auftragsverarbeitungsvertrags (Art. 28 DSGVO), der die EU-Standardvertragsklauseln enthält. Mehr dazu in der <a href="https://posthog.com/privacy" rel="noopener">Datenschutzerklärung von PostHog</a>.</p>
+`;
+
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -57,7 +69,7 @@ ${op.vatId ? `<p>${de ? "Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG"
     : "grow is an independent open-source project. It is not affiliated with or endorsed by Twitch or OBS. Their names and logos belong to their respective owners."}</p>`;
 }
 
-function privacyEn(op: Operator | null, host: string, twitchLogin: boolean): string {
+function privacyEn(op: Operator | null, host: string, twitchLogin: boolean, logs: LogRegion | null): string {
   return `
 <p>grow sets no tracking cookies and uses no analytics or advertising. It doesn't analyze visitors or their behavior and makes no automated decisions about you. This policy covers the personal data grow processes when you use ${esc(host)}: your IP address, the overlay you create, and the chat commands of the channels that use it.</p>
 
@@ -70,7 +82,7 @@ ${op ? `${address(op, "en")}<p>Email: ${mail(op)}</p>` : MISSING.en}
 <p>The fonts are served from our own address. Our Worker fetches them once from Fontshare and Google Fonts and keeps them in Cloudflare's cache, so your browser doesn't connect to those services and they don't receive your IP address.</p>
 <p>The legal basis is our legitimate interest in running grow securely and reliably (Art. 6(1)(f) GDPR). Cloudflare processes the data as our processor under a data processing agreement (Art. 28 GDPR). Cloudflare, Inc. is certified under the EU-U.S. Data Privacy Framework, for which the European Commission has adopted an adequacy decision (Art. 45 GDPR), and the agreement also contains the EU standard contractual clauses. More in <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>.</p>
 
-<h2>Your overlay</h2>
+${logs ? errorLogsEn(logs) : ""}<h2>Your overlay</h2>
 <p>When you make an overlay, we store its name, a hash of your dashboard key (never the key itself), the secret overlay link, the time it was created and when the dashboard was last used. With the overlay we keep its settings, among them the Twitch channel whose chat it reads, and the tasks on its list. All of this stays until you delete the overlay in the dashboard, which removes it at once. You can also email us to have it deleted.</p>
 <p>When you sign in, grow sets a cookie called grow_session that keeps you signed in for 60 days or until you sign out. We store only a hash of it. ${twitchLogin ? "Signing in with Twitch also sets a cookie called grow_oauth for 10 minutes, which protects the sign-in against forgery. " : ""}Your browser also keeps a few notes in its local storage, such as whether you already saved your key or copied the overlay link, so the dashboard doesn't ask again. They start with grow: and never leave your browser. These cookies and notes are strictly necessary for the service you asked for (§ 25(2) no. 2 TDDDG).</p>
 ${twitchLogin ? `<p>If you sign in with Twitch, Twitch tells us your Twitch user ID, login name and display name. We ask for no permissions beyond that, revoke the access token right after the sign-in and store only the user ID and login name with your overlay. Twitch Interactive, Inc. is based in the USA and processes the sign-in under its own responsibility.</p>` : ""}
@@ -93,7 +105,7 @@ ${twitchLogin ? `<p>If you sign in with Twitch, Twitch tells us your Twitch user
 <p><strong>You may object at any time, on grounds relating to your particular situation, to the processing of your personal data based on Art. 6(1)(f) GDPR (Art. 21 GDPR).</strong></p>`;
 }
 
-function privacyDe(op: Operator | null, host: string, twitchLogin: boolean): string {
+function privacyDe(op: Operator | null, host: string, twitchLogin: boolean, logs: LogRegion | null): string {
   return `
 <p>grow setzt keine Tracking-Cookies und nutzt keine Analyse- oder Werbedienste. Es wertet weder Besucher noch ihr Verhalten aus und trifft keine automatisierten Entscheidungen über dich. Diese Erklärung beschreibt, welche personenbezogenen Daten grow verarbeitet, wenn du ${esc(host)} nutzt: deine IP-Adresse, das Overlay, das du anlegst, und die Chat-Befehle der Kanäle, die es verwenden.</p>
 
@@ -106,7 +118,7 @@ ${op ? `${address(op, "de")}<p>E-Mail: ${mail(op)}</p>` : MISSING.de}
 <p>Die Schriften kommen von unserer eigenen Adresse. Unser Worker lädt sie einmal bei Fontshare und Google Fonts und hält sie im Cache von Cloudflare vor. Dein Browser verbindet sich also nicht mit diesen Diensten, und sie erhalten deine IP-Adresse nicht.</p>
 <p>Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren und zuverlässigen Betrieb von grow (Art. 6 Abs. 1 lit. f DSGVO). Cloudflare verarbeitet die Daten als unser Auftragsverarbeiter auf Grundlage eines Auftragsverarbeitungsvertrags (Art. 28 DSGVO). Cloudflare, Inc. ist nach dem EU-U.S. Data Privacy Framework zertifiziert, für das ein Angemessenheitsbeschluss der Europäischen Kommission besteht (Art. 45 DSGVO). Der Vertrag enthält zusätzlich die EU-Standardvertragsklauseln. Mehr dazu in der <a href="https://www.cloudflare.com/de-de/privacypolicy/">Datenschutzerklärung von Cloudflare</a>.</p>
 
-<h2>Dein Overlay</h2>
+${logs ? errorLogsDe(logs) : ""}<h2>Dein Overlay</h2>
 <p>Wenn du ein Overlay anlegst, speichern wir seinen Namen, einen Hash deines Dashboard-Schlüssels (nie den Schlüssel selbst), den geheimen Overlay-Link, den Zeitpunkt der Erstellung und wann das Dashboard zuletzt genutzt wurde. Zum Overlay gehören seine Einstellungen, darunter der Twitch-Kanal, dessen Chat es liest, und die Aufgaben auf seiner Liste. All das bleibt gespeichert, bis du das Overlay im Dashboard löschst, was es sofort entfernt. Du kannst uns auch per E-Mail bitten, es zu löschen.</p>
 <p>Wenn du dich anmeldest, setzt grow ein Cookie namens grow_session, das dich 60 Tage lang oder bis zur Abmeldung angemeldet hält. Wir speichern davon nur einen Hash. ${twitchLogin ? "Die Anmeldung mit Twitch setzt außerdem für 10 Minuten ein Cookie namens grow_oauth, das die Anmeldung vor Fälschung schützt. " : ""}Dein Browser behält außerdem ein paar Notizen in seinem lokalen Speicher, etwa ob du deinen Schlüssel schon gesichert oder den Overlay-Link kopiert hast, damit das Dashboard nicht erneut fragt. Sie beginnen mit grow: und verlassen deinen Browser nie. Diese Cookies und Notizen sind unbedingt erforderlich, um den von dir gewünschten Dienst bereitzustellen (§ 25 Abs. 2 Nr. 2 TDDDG).</p>
 ${twitchLogin ? `<p>Wenn du dich mit Twitch anmeldest, teilt Twitch uns deine Twitch-Nutzer-ID, deinen Login-Namen und deinen Anzeigenamen mit. Wir fragen keine weiteren Berechtigungen an, widerrufen das Zugriffstoken direkt nach der Anmeldung und speichern nur Nutzer-ID und Login-Namen mit deinem Overlay. Twitch Interactive, Inc. sitzt in den USA und verarbeitet die Anmeldung in eigener Verantwortung.</p>` : ""}
@@ -141,7 +153,7 @@ export function legalPage(path: LegalPath, env: Env, base: string): string {
   const de = p.lang === "de";
   const op = operator(env);
   const host = new URL(base).host;
-  const body = p.kind === "imprint" ? imprint(p.lang, op) : de ? privacyDe(op, host, !!env.TWITCH_CLIENT_ID) : privacyEn(op, host, !!env.TWITCH_CLIENT_ID);
+  const body = p.kind === "imprint" ? imprint(p.lang, op) : de ? privacyDe(op, host, !!env.TWITCH_CLIENT_ID, logRegion(env.POSTHOG_LOGS)) : privacyEn(op, host, !!env.TWITCH_CLIENT_ID, logRegion(env.POSTHOG_LOGS));
   return `<!doctype html>
 <html lang="${p.lang}">
 <head>

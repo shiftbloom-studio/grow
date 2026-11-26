@@ -6,6 +6,7 @@
 // whoever runs it. Update the privacy text whenever grow stores, logs or sends something new,
 // and keep both languages in step.
 import type { Env } from "./types";
+import { phKey } from "./posthog";
 
 export type LegalPath = "/privacy" | "/datenschutz" | "/imprint" | "/impressum";
 export const LEGAL_PATHS: LegalPath[] = ["/privacy", "/datenschutz", "/imprint", "/impressum"];
@@ -69,9 +70,24 @@ ${op.vatId ? `<p>${de ? "Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG"
     : "grow is an independent open-source project. It is not affiliated with or endorsed by Twitch or OBS. Their names and logos belong to their respective owners."}</p>`;
 }
 
-function privacyEn(op: Operator | null, host: string, twitchLogin: boolean, logs: LogRegion | null): string {
+
+// Shown when POSTHOG_KEY is set (see src/posthog.ts).
+const USAGE_EN = `<h2>Usage statistics</h2>
+<p>To see how grow is used and where it breaks, the start page, the command list, the dashboard and the legal pages load a script that we deliver from grow itself (posthog-js, under /_sb/) and that reports to PostHog: which of these pages was viewed and the site you came from (its domain only), clicks on buttons and links (without their text, labels or link targets), how fast the page loaded, and errors in the page's code. The overlay page in OBS never loads it, and overlay links, dashboard keys and anything you type are never sent. Our Worker also reports, without your IP address, when an overlay is created, signed in to (by key or Twitch), renamed or deleted and when its links are renewed, and once a minute per active overlay how many chat commands of each kind it handled, how many were refused, how many dashboard actions there were, and how many tasks are open or done. These reports carry a pseudonymous number derived from the overlay, not its name, your Twitch login, the task texts or the names of chatters. Errors in the Worker are reported too.</p>
+<p>The script sets no cookies and stores nothing on your device. PostHog derives a daily changing ID from your IP address and browser details on its servers, so visits on the same day can be counted together, but not across days, and you can't be identified. PostHog uses the IP address only for this and for an approximate location, and doesn't store it. There is no session recording.</p>
+<p>PostHog Inc., 2261 Market St. #4008, San Francisco, CA 94114, USA, stores this data for us on servers in the USA and processes it as our processor under a data processing agreement (Art. 28 GDPR). PostHog is certified under the EU-U.S. Data Privacy Framework, for which the European Commission has adopted an adequacy decision (Art. 45 GDPR); the agreement also contains the EU standard contractual clauses. We delete the statistics after 12 months at the latest. The legal basis is our legitimate interest in improving grow and fixing errors (Art. 6(1)(f) GDPR). A content blocker or your browser's tracking protection may stop the script; grow works the same without it. More in <a href="https://posthog.com/privacy" rel="noopener">PostHog's privacy policy</a>.</p>
+
+`;
+const USAGE_DE = `<h2>Nutzungsstatistik</h2>
+<p>Damit wir sehen, wie grow genutzt wird und wo es hakt, laden die Startseite, die Befehlsliste, das Dashboard und die Rechtsseiten ein Skript, das wir von grow selbst ausliefern (posthog-js, unter /_sb/) und das an PostHog meldet: welche dieser Seiten aufgerufen wurde und von welcher Website du kommst (nur deren Domain), Klicks auf Schaltflächen und Links (ohne deren Text, Beschriftung oder Linkziel), wie schnell die Seite geladen hat und Fehler im Code der Seite. Die Overlay-Seite in OBS lädt es nie, und Overlay-Links, Dashboard-Schlüssel und alles, was du eingibst, werden nie gesendet. Unser Worker meldet außerdem, ohne deine IP-Adresse, wenn ein Overlay angelegt, angemeldet (per Schlüssel oder Twitch), umbenannt oder gelöscht wird und wenn seine Links erneuert werden, und einmal pro Minute je aktivem Overlay, wie viele Chat-Befehle welcher Art es verarbeitet hat, wie viele abgelehnt wurden, wie viele Aktionen im Dashboard es gab und wie viele Aufgaben offen oder erledigt sind. Diese Meldungen tragen eine pseudonyme Nummer, die aus dem Overlay abgeleitet ist, nicht seinen Namen, deinen Twitch-Login, die Aufgabentexte oder die Namen von Chattern. Fehler im Worker werden ebenfalls gemeldet.</p>
+<p>Das Skript setzt keine Cookies und speichert nichts auf deinem Gerät. PostHog bildet auf seinen Servern aus deiner IP-Adresse und Angaben deines Browsers eine täglich wechselnde ID, sodass Besuche am selben Tag zusammen gezählt werden können, aber nicht über Tage hinweg, und du nicht erkannt werden kannst. Die IP-Adresse nutzt PostHog nur dafür und für einen ungefähren Standort und speichert sie nicht. Es gibt keine Sitzungsaufzeichnung.</p>
+<p>PostHog Inc., 2261 Market St. #4008, San Francisco, CA 94114, USA, speichert diese Daten für uns auf Servern in den USA und verarbeitet sie als unser Auftragsverarbeiter auf Grundlage eines Auftragsverarbeitungsvertrags (Art. 28 DSGVO). PostHog ist nach dem EU-US Data Privacy Framework zertifiziert, für das die Europäische Kommission einen Angemessenheitsbeschluss erlassen hat (Art. 45 DSGVO); der Vertrag enthält zusätzlich die EU-Standardvertragsklauseln. Wir löschen die Statistik spätestens nach 12 Monaten. Rechtsgrundlage ist unser berechtigtes Interesse, grow zu verbessern und Fehler zu beheben (Art. 6 Abs. 1 lit. f DSGVO). Ein Inhaltsblocker oder der Tracking-Schutz deines Browsers kann das Skript aufhalten; grow funktioniert ohne es genauso. Mehr dazu in der <a href="https://posthog.com/privacy" rel="noopener">Datenschutzerklärung von PostHog</a>.</p>
+
+`;
+
+function privacyEn(op: Operator | null, host: string, twitchLogin: boolean, logs: LogRegion | null, analytics = false): string {
   return `
-<p>grow sets no tracking cookies and uses no analytics or advertising. It doesn't analyze visitors or their behavior and makes no automated decisions about you. This policy covers the personal data grow processes when you use ${esc(host)}: your IP address, the overlay you create, and the chat commands of the channels that use it.</p>
+<p>${analytics ? `grow sets no tracking cookies and uses no advertising. It counts, without cookies and without knowing who you are, how its pages and overlays are used, as described under "Usage statistics", and makes no automated decisions about you.` : "grow sets no tracking cookies and uses no analytics or advertising. It doesn't analyze visitors or their behavior and makes no automated decisions about you."} This policy covers the personal data grow processes when you use ${esc(host)}: your IP address, the overlay you create, and the chat commands of the channels that use it.</p>
 
 <h2>Controller</h2>
 ${op ? `${address(op, "en")}<p>Email: ${mail(op)}</p>` : MISSING.en}
@@ -82,7 +98,7 @@ ${op ? `${address(op, "en")}<p>Email: ${mail(op)}</p>` : MISSING.en}
 <p>The fonts are served from our own address. Our Worker fetches them once from Fontshare and Google Fonts and keeps them in Cloudflare's cache, so your browser doesn't connect to those services and they don't receive your IP address.</p>
 <p>The legal basis is our legitimate interest in running grow securely and reliably (Art. 6(1)(f) GDPR). Cloudflare processes the data as our processor under a data processing agreement (Art. 28 GDPR). Cloudflare, Inc. is certified under the EU-U.S. Data Privacy Framework, for which the European Commission has adopted an adequacy decision (Art. 45 GDPR), and the agreement also contains the EU standard contractual clauses. More in <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>.</p>
 
-${logs ? errorLogsEn(logs) : ""}<h2>Your overlay</h2>
+${logs ? errorLogsEn(logs) : ""}${analytics ? USAGE_EN : ""}<h2>Your overlay</h2>
 <p>When you make an overlay, we store its name, a hash of your dashboard key (never the key itself), the secret overlay link, the time it was created and when the dashboard was last used. With the overlay we keep its settings, among them the Twitch channel whose chat it reads, and the tasks on its list. All of this stays until you delete the overlay in the dashboard, which removes it at once. You can also email us to have it deleted.</p>
 <p>When you sign in, grow sets a cookie called grow_session that keeps you signed in for 60 days or until you sign out. We store only a hash of it. ${twitchLogin ? "Signing in with Twitch also sets a cookie called grow_oauth for 10 minutes, which protects the sign-in against forgery. " : ""}Your browser also keeps a few notes in its local storage, such as whether you already saved your key or copied the overlay link, so the dashboard doesn't ask again. They start with grow: and never leave your browser. These cookies and notes are strictly necessary for the service you asked for (§ 25(2) no. 2 TDDDG).</p>
 ${twitchLogin ? `<p>If you sign in with Twitch, Twitch tells us your Twitch user ID, login name and display name. We ask for no permissions beyond that, revoke the access token right after the sign-in and store only the user ID and login name with your overlay. Twitch Interactive, Inc. is based in the USA and processes the sign-in under its own responsibility.</p>` : ""}
@@ -105,9 +121,9 @@ ${twitchLogin ? `<p>If you sign in with Twitch, Twitch tells us your Twitch user
 <p><strong>You may object at any time, on grounds relating to your particular situation, to the processing of your personal data based on Art. 6(1)(f) GDPR (Art. 21 GDPR).</strong></p>`;
 }
 
-function privacyDe(op: Operator | null, host: string, twitchLogin: boolean, logs: LogRegion | null): string {
+function privacyDe(op: Operator | null, host: string, twitchLogin: boolean, logs: LogRegion | null, analytics = false): string {
   return `
-<p>grow setzt keine Tracking-Cookies und nutzt keine Analyse- oder Werbedienste. Es wertet weder Besucher noch ihr Verhalten aus und trifft keine automatisierten Entscheidungen über dich. Diese Erklärung beschreibt, welche personenbezogenen Daten grow verarbeitet, wenn du ${esc(host)} nutzt: deine IP-Adresse, das Overlay, das du anlegst, und die Chat-Befehle der Kanäle, die es verwenden.</p>
+<p>${analytics ? "grow setzt keine Tracking-Cookies und nutzt keine Werbedienste. Wie seine Seiten und Overlays genutzt werden, zählt es ohne Cookies und ohne zu wissen, wer du bist, wie unter „Nutzungsstatistik“ beschrieben, und es trifft keine automatisierten Entscheidungen über dich." : "grow setzt keine Tracking-Cookies und nutzt keine Analyse- oder Werbedienste. Es wertet weder Besucher noch ihr Verhalten aus und trifft keine automatisierten Entscheidungen über dich."} Diese Erklärung beschreibt, welche personenbezogenen Daten grow verarbeitet, wenn du ${esc(host)} nutzt: deine IP-Adresse, das Overlay, das du anlegst, und die Chat-Befehle der Kanäle, die es verwenden.</p>
 
 <h2>Verantwortlicher</h2>
 ${op ? `${address(op, "de")}<p>E-Mail: ${mail(op)}</p>` : MISSING.de}
@@ -118,7 +134,7 @@ ${op ? `${address(op, "de")}<p>E-Mail: ${mail(op)}</p>` : MISSING.de}
 <p>Die Schriften kommen von unserer eigenen Adresse. Unser Worker lädt sie einmal bei Fontshare und Google Fonts und hält sie im Cache von Cloudflare vor. Dein Browser verbindet sich also nicht mit diesen Diensten, und sie erhalten deine IP-Adresse nicht.</p>
 <p>Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren und zuverlässigen Betrieb von grow (Art. 6 Abs. 1 lit. f DSGVO). Cloudflare verarbeitet die Daten als unser Auftragsverarbeiter auf Grundlage eines Auftragsverarbeitungsvertrags (Art. 28 DSGVO). Cloudflare, Inc. ist nach dem EU-U.S. Data Privacy Framework zertifiziert, für das ein Angemessenheitsbeschluss der Europäischen Kommission besteht (Art. 45 DSGVO). Der Vertrag enthält zusätzlich die EU-Standardvertragsklauseln. Mehr dazu in der <a href="https://www.cloudflare.com/de-de/privacypolicy/">Datenschutzerklärung von Cloudflare</a>.</p>
 
-${logs ? errorLogsDe(logs) : ""}<h2>Dein Overlay</h2>
+${logs ? errorLogsDe(logs) : ""}${analytics ? USAGE_DE : ""}<h2>Dein Overlay</h2>
 <p>Wenn du ein Overlay anlegst, speichern wir seinen Namen, einen Hash deines Dashboard-Schlüssels (nie den Schlüssel selbst), den geheimen Overlay-Link, den Zeitpunkt der Erstellung und wann das Dashboard zuletzt genutzt wurde. Zum Overlay gehören seine Einstellungen, darunter der Twitch-Kanal, dessen Chat es liest, und die Aufgaben auf seiner Liste. All das bleibt gespeichert, bis du das Overlay im Dashboard löschst, was es sofort entfernt. Du kannst uns auch per E-Mail bitten, es zu löschen.</p>
 <p>Wenn du dich anmeldest, setzt grow ein Cookie namens grow_session, das dich 60 Tage lang oder bis zur Abmeldung angemeldet hält. Wir speichern davon nur einen Hash. ${twitchLogin ? "Die Anmeldung mit Twitch setzt außerdem für 10 Minuten ein Cookie namens grow_oauth, das die Anmeldung vor Fälschung schützt. " : ""}Dein Browser behält außerdem ein paar Notizen in seinem lokalen Speicher, etwa ob du deinen Schlüssel schon gesichert oder den Overlay-Link kopiert hast, damit das Dashboard nicht erneut fragt. Sie beginnen mit grow: und verlassen deinen Browser nie. Diese Cookies und Notizen sind unbedingt erforderlich, um den von dir gewünschten Dienst bereitzustellen (§ 25 Abs. 2 Nr. 2 TDDDG).</p>
 ${twitchLogin ? `<p>Wenn du dich mit Twitch anmeldest, teilt Twitch uns deine Twitch-Nutzer-ID, deinen Login-Namen und deinen Anzeigenamen mit. Wir fragen keine weiteren Berechtigungen an, widerrufen das Zugriffstoken direkt nach der Anmeldung und speichern nur Nutzer-ID und Login-Namen mit deinem Overlay. Twitch Interactive, Inc. sitzt in den USA und verarbeitet die Anmeldung in eigener Verantwortung.</p>` : ""}
@@ -153,7 +169,7 @@ export function legalPage(path: LegalPath, env: Env, base: string): string {
   const de = p.lang === "de";
   const op = operator(env);
   const host = new URL(base).host;
-  const body = p.kind === "imprint" ? imprint(p.lang, op) : de ? privacyDe(op, host, !!env.TWITCH_CLIENT_ID, logRegion(env.POSTHOG_LOGS)) : privacyEn(op, host, !!env.TWITCH_CLIENT_ID, logRegion(env.POSTHOG_LOGS));
+  const body = p.kind === "imprint" ? imprint(p.lang, op) : de ? privacyDe(op, host, !!env.TWITCH_CLIENT_ID, logRegion(env.POSTHOG_LOGS), !!phKey(env)) : privacyEn(op, host, !!env.TWITCH_CLIENT_ID, logRegion(env.POSTHOG_LOGS), !!phKey(env));
   return `<!doctype html>
 <html lang="${p.lang}">
 <head>

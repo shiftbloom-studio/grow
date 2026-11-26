@@ -3,6 +3,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { cleanText, isMod, hasRole, parseCommand, parseIrcPrivmsg } from "./commands";
 import { DEFAULT_SETTINGS, type ChatUser, type Env, type Settings, type Task } from "./types";
+import { phCapture, phKey } from "./posthog";
 
 type SocketRole = "admin" | "overlay";
 interface Attachment { role: SocketRole; preview?: boolean }
@@ -47,6 +48,12 @@ function clampSettings(input: Partial<Settings>, base: Settings): Settings {
   return s;
 }
 
+/** Pseudonymous reference for analytics: a hash of the object id, never the channel's name, login or keys. */
+export async function channelRef(id: string) {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`grow-channel:${id}`));
+  return [...new Uint8Array(d).slice(0, 8)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export class ChannelRoom extends DurableObject<Env> {
   private settings: Settings = DEFAULT_SETTINGS;
   private irc: WebSocket | null = null;
@@ -57,6 +64,8 @@ export class ChannelRoom extends DurableObject<Env> {
   private rejectNotice = new Map<string, number>();
   private log: LogEntry[] = [];
   private lastVerb = "done";
+  /** Counts of chat commands and dashboard actions since the last report (sent from the alarm, at most once a minute). */
+  private stats: Record<string, number> = {};
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -117,6 +126,7 @@ export class ChannelRoom extends DurableObject<Env> {
   handleChat(msg: { id: string; user: ChatUser; text: string }): string | null {
     const result = this.runChat(msg);
     if (result === null) return null;
+    this.count(result === "ok" ? `chat_${this.lastVerb.replace(/ /g, "_")}` : "chat_rejected");
     const detail = result === "ok" ? undefined : this.rejectDetail(result as Rejection, msg.text);
     this.record(msg.user, msg.text, result === "ok" ? this.lastVerb : result, detail);
     if (result !== "ok") this.reject(msg.user, result as Rejection, detail);
@@ -322,7 +332,22 @@ export class ChannelRoom extends DurableObject<Env> {
     return new Response("not found", { status: 404 });
   }
 
+  private count(key: string) {
+    if (!phKey(this.env)) return;
+    this.stats[key] = (this.stats[key] ?? 0) + 1;
+  }
+
+  /** One aggregated event per channel and minute: how many commands and dashboard actions, never their text or who sent them. */
+  private async reportStats() {
+    const counts = this.stats;
+    if (!Object.keys(counts).length) return;
+    this.stats = {};
+    const tasks = this.ctx.storage.sql.exec("SELECT COUNT(*) AS n, SUM(done) AS d FROM tasks").one() as { n: number; d: number | null };
+    await phCapture(this.env, null, "channel_activity", { ...counts, open_tasks: tasks.n - (tasks.d ?? 0), done_tasks: tasks.d ?? 0, overlays: this.ctx.getWebSockets().filter((w) => (w.deserializeAttachment() as Attachment | null)?.role === "overlay").length, distinct_id: `channel_${await channelRef(this.ctx.id.toString())}` });
+  }
+
   async alarm() {
+    await this.reportStats().catch(() => {});
     const sockets = this.ctx.getWebSockets();
     await this.ensureIrc();
     if (sockets.length > 0) await this.ctx.storage.setAlarm(Date.now() + 60_000);
@@ -336,6 +361,7 @@ export class ChannelRoom extends DurableObject<Env> {
     if (msg.op === "ping") return this.send(ws, { t: "pong" });
     if (att?.role !== "admin") return; // overlays are read-only
     const id = typeof msg.id === "string" ? msg.id : "";
+    if (typeof msg.op === "string" && /^[a-z-]{1,20}$/.test(msg.op)) this.count(`dashboard_${msg.op.replace(/-/g, "_")}`);
     switch (msg.op) {
       case "add": {
         const text = cleanText(String(msg.text ?? ""));

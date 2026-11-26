@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 shiftbloom studio and contributors
-import { ChannelRoom } from "./channel";
+import { ChannelRoom, channelRef } from "./channel";
+import { phCapture, phException, phProxy, phScriptTag } from "./posthog";
 import { cleanText } from "./commands";
 import type { Env } from "./types";
 import { requestLine } from "./accesslog";
@@ -74,6 +75,18 @@ function html(body: string, extra: HeadersInit = {}) {
       ...extra,
     },
   });
+}
+
+/** Pages whose address may be reported as is; overlay links (/o/<key>) never load the script, and anything else is masked. */
+const PH_KEEP = /^\/(commands|app|privacy|datenschutz|imprint|impressum)?$/;
+const withAnalytics = (page: string, env: Env) => {
+  const tag = phScriptTag(env);
+  return tag ? page.replace("</head>", `${tag}\n</head>`) : page;
+};
+/** Server events for one channel share a pseudonymous id, so funnels work without names, logins or keys. */
+async function track(env: Env, ctx: ExecutionContext, event: string, channelId: string, props: Record<string, unknown> = {}) {
+  if (!phScriptTag(env)) return;
+  phCapture(env, ctx, event, { ...props, distinct_id: `channel_${await channelRef(env.CHANNEL.idFromName(channelId).toString())}` });
 }
 
 function asset(body: BodyInit, type: string, extra: HeadersInit = {}) {
@@ -188,7 +201,7 @@ function meResponse(req: Request, env: Env, ch: ChannelRow) {
   };
 }
 
-async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
+async function handleApi(req: Request, env: Env, url: URL, ctx: ExecutionContext): Promise<Response> {
   const path = url.pathname;
 
   if (path === "/api/config") {
@@ -202,6 +215,7 @@ async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
     const name = cleanText(body.name || "", 40) || "Today's tasks";
     const ch = await newChannel(env, name);
     const token = await createSession(env, ch.id);
+    await track(env, ctx, "channel_created", ch.id, { method: "key" });
     return json(
       { adminKey: ch.adminKey, overlayUrl: `${origin(req, env)}/o/${ch.overlayKey}` },
       201,
@@ -218,6 +232,7 @@ async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
     const ch = await env.DB.prepare("SELECT id FROM channels WHERE admin_key_hash = ?").bind(await sha256(key)).first<{ id: string }>();
     if (!ch) return json({ error: "invalid key" }, 401);
     const token = await createSession(env, ch.id);
+    await track(env, ctx, "signed_in", ch.id, { method: "key" });
     return json({ ok: true }, 200, { "set-cookie": cookie(SESSION_COOKIE, token, SESSION_TTL / 1000) });
   }
 
@@ -249,6 +264,7 @@ async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
     const name = cleanText(body.name || "", 40);
     if (!name) return json({ error: "name required" }, 400);
     await env.DB.prepare("UPDATE channels SET name = ? WHERE id = ?").bind(name, ch.id).run();
+    await track(env, ctx, "channel_renamed", ch.id);
     return json({ ok: true });
   }
 
@@ -256,6 +272,7 @@ async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
     const overlayKey = randomId(24);
     await env.DB.prepare("UPDATE channels SET overlay_key = ? WHERE id = ?").bind(overlayKey, ch.id).run();
     await stub(env, ch.id).fetch("https://do/kick-overlays", { method: "POST" });
+    await track(env, ctx, "overlay_link_rotated", ch.id);
     return json({ overlayUrl: `${origin(req, env)}/o/${overlayKey}` });
   }
 
@@ -265,10 +282,12 @@ async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
       env.DB.prepare("UPDATE channels SET admin_key_hash = ? WHERE id = ?").bind(await sha256(adminKey), ch.id),
       env.DB.prepare("DELETE FROM sessions WHERE channel_id = ? AND token_hash != ?").bind(ch.id, await sha256(getCookie(req, SESSION_COOKIE) || "")),
     ]);
+    await track(env, ctx, "dashboard_key_rotated", ch.id);
     return json({ adminKey });
   }
 
   if (path === "/api/delete-channel") {
+    await track(env, ctx, "channel_deleted", ch.id);
     await stub(env, ch.id).fetch("https://do/wipe", { method: "POST" });
     await env.DB.batch([
       env.DB.prepare("DELETE FROM sessions WHERE channel_id = ?").bind(ch.id),
@@ -280,7 +299,7 @@ async function handleApi(req: Request, env: Env, url: URL): Promise<Response> {
   return json({ error: "not found" }, 404);
 }
 
-async function twitchAuth(req: Request, env: Env, url: URL): Promise<Response> {
+async function twitchAuth(req: Request, env: Env, url: URL, ctx: ExecutionContext): Promise<Response> {
   if (!env.TWITCH_CLIENT_ID || !env.TWITCH_CLIENT_SECRET) return new Response("Twitch sign-in isn't set up on this server.", { status: 404 });
   const redirectUri = `${origin(req, env)}/auth/twitch/callback`;
   if (url.pathname === "/auth/twitch") {
@@ -318,6 +337,7 @@ async function twitchAuth(req: Request, env: Env, url: URL): Promise<Response> {
     fresh = created.adminKey;
   }
   const token = await createSession(env, channelId);
+  await track(env, ctx, fresh ? "channel_created" : "signed_in", channelId, { method: "twitch" });
   const headers = new Headers({ location: fresh ? `/app#welcome=${fresh}` : "/app" });
   headers.append("set-cookie", cookie(SESSION_COOKIE, token, SESSION_TTL / 1000));
   headers.append("set-cookie", cookie("grow_oauth", "", 0));
@@ -330,10 +350,12 @@ const app = {
     const path = url.pathname;
     const base = (env.PUBLIC_URL || SITE).replace(/\/$/, "");
     try {
-      if (path === "/") return html(landingHtml);
-      if (path === "/commands") return html(commandsHtml);
-      if (path === "/app") return html(appHtml, NOINDEX);
-      if ((LEGAL_PATHS as string[]).includes(path)) return html(legalPage(path as LegalPath, env, base), NOINDEX);
+      const ph = await phProxy(req, env, { app: "grow", keep: PH_KEEP });
+      if (ph) return ph;
+      if (path === "/") return html(withAnalytics(landingHtml, env));
+      if (path === "/commands") return html(withAnalytics(commandsHtml, env));
+      if (path === "/app") return html(withAnalytics(appHtml, env), NOINDEX);
+      if ((LEGAL_PATHS as string[]).includes(path)) return html(withAnalytics(legalPage(path as LegalPath, env, base), env), NOINDEX);
       if (path === "/healthz") return json({ ok: true });
       if (path === "/robots.txt") return asset(robotsTxt(base), "text/plain; charset=utf-8");
       if (path === "/sitemap.xml") return asset(sitemapXml(base), "application/xml; charset=utf-8");
@@ -349,8 +371,8 @@ const app = {
       if (path === "/assets/brand.css") return asset(brandCss, "text/css; charset=utf-8");
       if (path === "/assets/bloom.js") return asset(bloomJs, "text/javascript; charset=utf-8");
       if (path === "/assets/favicon.svg" || path === "/favicon.ico") return asset(faviconSvg, "image/svg+xml");
-      if (path.startsWith("/api/")) return await handleApi(req, env, url);
-      if (path.startsWith("/auth/twitch")) return await twitchAuth(req, env, url);
+      if (path.startsWith("/api/")) return await handleApi(req, env, url, ctx);
+      if (path.startsWith("/auth/twitch")) return await twitchAuth(req, env, url, ctx);
 
       const overlay = /^\/o\/([A-Za-z0-9]{24})$/.exec(path);
       if (overlay) return html(overlayHtml, NOINDEX);
@@ -366,6 +388,7 @@ const app = {
       return new Response("Not found", { status: 404, headers: NOINDEX });
     } catch (err) {
       console.error(err);
+      phException(env, ctx, err, { where: "fetch" });
       return json({ error: "internal error" }, 500);
     }
   },

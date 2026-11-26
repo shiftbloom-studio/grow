@@ -117,6 +117,8 @@ grow runs entirely on Cloudflare's developer platform (Workers, Durable Objects 
 | `LEGAL_NAME`, `LEGAL_STREET`, `LEGAL_CITY`, `LEGAL_EMAIL` | secrets | yes, for a public copy | operator named in the imprint and privacy policy |
 | `LEGAL_BUSINESS`, `LEGAL_COUNTRY`, `LEGAL_PHONE`, `LEGAL_VAT_ID`, `LEGAL_AUTHORITY` | secrets | no | more imprint details and the responsible data protection authority |
 | `POSTHOG_LOGS` | var | no | `eu` or `us` when logs are exported to PostHog (see below); the privacy policy then names PostHog |
+| `POSTHOG_KEY` | secret | no | PostHog project token (`phc_…`): turns on usage statistics (see below) |
+| `POSTHOG_HOST` | var | no | PostHog region host, default `https://us.i.posthog.com` |
 
 ### Logs in PostHog
 
@@ -127,6 +129,12 @@ Workers Logs can be exported over OpenTelemetry without code changes. Create a l
 ```
 
 Then set `POSTHOG_LOGS`. Keep `invocation_logs` off: Cloudflare's invocation logs contain the full request URL, and an overlay URL is its overlay key. With `POSTHOG_LOGS` set, grow writes its own line per request instead, with overlay keys masked, no query string and only the user agent, language, content type and length headers.
+
+### Usage statistics with PostHog (optional)
+
+With the secret `POSTHOG_KEY` set (`npx wrangler secret put POSTHOG_KEY`), the start page, `/commands`, `/app` and the legal pages load `/_sb/init.js`, which loads posthog-js through `/_sb/*` on grow's own origin, so the CSP stays at `'self'`. The overlay page never loads it. posthog-js runs cookieless, without session replay; autocapture only records clicks on buttons and links, with text masked and only `id`, `class` and `data-ph` attributes kept; every path other than those pages is reported as `/[private]`, and the `#welcome=` key in the dashboard URL is never sent. Turn on cookieless tracking in the PostHog project settings.
+
+The Worker reports `channel_created` and `signed_in` (method key or twitch), `channel_renamed`, `overlay_link_rotated`, `dashboard_key_rotated`, `channel_deleted` and `$exception`. Each channel's Durable Object sends one `channel_activity` event per minute while an overlay or dashboard is connected, with counts of chat commands by kind, refusals and dashboard actions, plus open and done tasks. All server events use a pseudonymous `channel_<hash>` id and carry no names, logins, task texts or keys. The privacy policy gains a "Usage statistics" section (EN and DE).
 
 ### Deploy with Workers Builds
 

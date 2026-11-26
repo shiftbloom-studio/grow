@@ -21,7 +21,8 @@ export const phKey = (env: PostHogEnv): string | null => {
   return /^phc_[A-Za-z0-9_-]{10,}$/.test(k) ? k : null;
 };
 export function phHost(env: PostHogEnv): string {
-  const h = (env.POSTHOG_HOST || DEFAULT_HOST).trim().replace(/\/+$/, "");
+  let h = (env.POSTHOG_HOST || DEFAULT_HOST).trim();
+  while (h.endsWith("/")) h = h.slice(0, -1);
   return /^https:\/\/[a-z0-9.-]+$/i.test(h) ? h : DEFAULT_HOST;
 }
 /** PostHog Cloud serves the SDK from a separate host (us.i.posthog.com -> us-assets.i.posthog.com). */

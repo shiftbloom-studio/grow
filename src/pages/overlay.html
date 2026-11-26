@@ -183,7 +183,8 @@
     t.replaceChildren();
     t.classList.toggle("warn", ev.kind === "rejected");
     if (ev.kind === "rejected") {
-      const fn = tr()[ev.reason];
+      const texts = tr();
+      const fn = Object.hasOwn(texts, ev.reason) && typeof texts[ev.reason] === "function" ? texts[ev.reason] : null;
       (fn ? fn(ev.detail) : ev.reason).split("{u}").forEach((part, i) => { if (i) t.append(el("b", "", ev.user)); t.append(document.createTextNode(part)); });
     } else {
       const who = el("b", "", ev.user); who.style.color = ev.color;

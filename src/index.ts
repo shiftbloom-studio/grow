@@ -21,9 +21,17 @@ const SESSION_TTL = 1000 * 60 * 60 * 24 * 60; // 60 days
 const ALPHABET = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function randomId(len: number): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(len));
+  const mask = (1 << Math.ceil(Math.log2(ALPHABET.length))) - 1;
   let out = "";
-  for (const b of bytes) out += ALPHABET[b % ALPHABET.length];
+  // Rejection sampling: mask each byte down to the next power of two and drop values
+  // outside the ALPHABET, so every character is equally likely (no modulo bias).
+  while (out.length < len) {
+    for (const b of crypto.getRandomValues(new Uint8Array(len * 2))) {
+      const v = b & mask;
+      if (v < ALPHABET.length) out += ALPHABET[v];
+      if (out.length === len) break;
+    }
+  }
   return out;
 }
 

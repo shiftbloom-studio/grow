@@ -96,6 +96,7 @@
   .step .num { font: 500 13px/1 var(--mono); color: var(--root); }
   .step h3 { font-size: 23px; line-height: 1.15; margin: 18px 0 10px; }
   .step p { margin: 0; color: var(--ink-60); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   table.cmds { width: 100%; border-collapse: collapse; font-size: 16px; }
   table.cmds td { padding: 13px 0; border-bottom: 1px solid var(--ink-12); vertical-align: top; }
   table.cmds td:first-child { font-family: var(--mono); font-size: 14px; white-space: nowrap; padding-right: 32px; width: 1%; }
@@ -163,6 +164,7 @@
   <section class="block">
     <div class="block-head"><div class="label">02 · commands</div><h2>What chat can type<span class="seed">.</span></h2></div>
     <table class="cmds">
+      <thead class="sr-only"><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
       <tr><td>!task read chapter 4</td><td>adds a task (!add and !todo work too)</td></tr>
       <tr><td>!done 2</td><td>finishes your first open task, or task 2</td></tr>
       <tr><td>!edit 1 new text</td><td>rewrites task 1</td></tr>

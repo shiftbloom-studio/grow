@@ -50,7 +50,7 @@ export function cleanText(s: string, max = 140): string {
 function takeIndex(rest: string): { index: number | null; rest: string } {
   const m = /^#?(\d{1,3})(?:\s+|$)/.exec(rest);
   if (!m) return { index: null, rest };
-  return { index: parseInt(m[1], 10), rest: rest.slice(m[0].length) };
+  return { index: Number.parseInt(m[1], 10), rest: rest.slice(m[0].length) };
 }
 
 export function parseCommand(message: string, settings: Pick<Settings, "prefix">): Command | null {

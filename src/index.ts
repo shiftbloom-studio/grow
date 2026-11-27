@@ -88,7 +88,7 @@ const withAnalytics = (page: string, env: Env) => {
 /** Server events for one channel share a pseudonymous id, so funnels work without names, logins or keys. */
 async function track(env: Env, ctx: ExecutionContext, event: string, channelId: string, props: Record<string, unknown> = {}) {
   if (!phScriptTag(env)) return;
-  phCapture(env, ctx, event, { ...props, distinct_id: `channel_${await channelRef(env.CHANNEL.idFromName(channelId).toString())}` });
+  void phCapture(env, ctx, event, { ...props, distinct_id: `channel_${await channelRef(env.CHANNEL.idFromName(channelId).toString())}` });
 }
 
 function asset(body: BodyInit, type: string, extra: HeadersInit = {}) {
@@ -390,7 +390,7 @@ const app = {
       return new Response("Not found", { status: 404, headers: NOINDEX });
     } catch (err) {
       console.error(err);
-      phException(env, ctx, err, { where: "fetch" });
+      void phException(env, ctx, err, { where: "fetch" });
       return json({ error: "internal error" }, 500);
     }
   },
